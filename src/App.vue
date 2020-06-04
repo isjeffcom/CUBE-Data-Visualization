@@ -1,27 +1,40 @@
 <template>
   <div id="app">
-    <cmap msg="Welcome to Your Vue.js App"/>
+    <router-view></router-view>
   </div>
 </template>
 
 <script>
-import cmap from './components/cmap.vue'
+
 
 export default {
   name: 'App',
   components: {
-    cmap
+
   }
 }
 </script>
 
 <style>
+*{
+  background: #111;
+  margin: 0;
+  padding: 0;
+}
+
+body{
+  position: absolute;
+  height: 100%;
+  width: 100%;
+}
+
 #app {
+  position: absolute;
+  height: 100%;
+  width: 100%;
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+  color: #ffffff;
 }
 </style>

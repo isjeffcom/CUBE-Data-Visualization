@@ -7,11 +7,13 @@
 <script>
 
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+
 
 import ThreeBasic from '../../utils/ThreeBasic'
 import Request from '../../utils/Request'
+import { Vector3 } from 'three'
 
 export default {
   name: 'space',
@@ -34,23 +36,27 @@ export default {
       iR: null,
 
       // Config Address
-      Conf_Lights: "./assets/config/lights.json",
-      Cont_Models: "./assets/config/models.json"
+      conf_Lights: "./assets/config/lights.json",
+      cont_Models: "./assets/config/models.json",
+      conf_GeoJSON: "./assets/geo/edinburgh.geojson"
     }
   },
   mounted(){
     let that = this
+
     this.Init()
     this.Update()
 
     // 监听resize事件，当窗口尺寸改变的时候更新渲染
     window.addEventListener( 'resize', onWindowResize, false )
 
-    function onWindowResize() {
+    function onWindowResize(){
       that.camera.aspect = window.innerWidth / window.innerHeight
       that.camera.updateProjectionMatrix()
       that.renderer.setSize( window.innerWidth, window.innerHeight )
     }
+
+    onWindowResize()
 
     // 监听点击事件，打印被选中物体
     document.getElementById('cont').addEventListener("mousedown", (evt) => {
@@ -59,30 +65,37 @@ export default {
         y: - ( evt.clientY / window.innerHeight ) * 2 + 1
       }
         that.checkIntersection(mouse)
-    }, false);
+    }, false)
   },
+
   methods:{
+
     Init(){
 
       let cont = document.getElementById('cont')
 
       // Init Camera
-      this.camera = new THREE.PerspectiveCamera(25, cont.clientWidth/cont.clientHeight, 1, 2000)
-      this.camera.position.x = 90
-      this.camera.position.y = 100
-      this.camera.position.z = 250
+      this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, 1, 2000)
+      this.camera.position.x = 0
+      this.camera.position.y = 5
+
+      this.camera.position.z = 0
       this.camera.name = "Main-Camera"
 
       // Init Scene
       this.scene = new THREE.Scene()
-      this.scene.background = new THREE.Color( 0x111111 )
+      this.scene.background = new THREE.Color( 0xa0a0a0 )
+      this.scene.fog = new THREE.Fog( 0xa0a0a0, 10, 300 )
 
       // Init iR
       this.iR = ThreeBasic.AddGroup("IR", "Interacitve-Root")
       this.scene.add(this.iR)
 
       // Init Light
-      this.LoadLights(this.Conf_Lights)
+      this.LoadLights(this.conf_Lights)
+
+      let gridHelper = new THREE.GridHelper( 10, 10 )
+      this.scene.add( gridHelper )
 
       // Init Models Loading Manager
       this.loadManager = new THREE.LoadingManager()
@@ -95,7 +108,9 @@ export default {
       }
 
       // Init Loading Models
-      this.LoadModels(this.Cont_Models, this.scene)
+      //this.LoadModels(this.cont_Models, this.scene)
+      this.LoadBuildings(this.conf_GeoJSON, this.scene)
+      //this.addBuilding()
 
       // Init Ray Caster
       this.raycaster = new THREE.Raycaster
@@ -118,21 +133,101 @@ export default {
       this.controls.enableDamping = true
       this.controls.dampingFactor = 0.25
       this.controls.screenSpacePanning = true
-      this.controls.maxDistance = 400
-      this.controls.minDistance = 80
-      this.controls.rotateSpeed = 0.2
+      this.controls.maxDistance = 800
+      this.controls.minDistance = 10
+      this.controls.rotateSpeed = 0.7
 
+      // Init Controls Update
       this.controls.update()
 
     },
 
-    // Render frame (Update)
+    // Render frame (Tick)
     Update(){
+      requestAnimationFrame(this.Update)
       this.renderer.render(this.scene, this.camera)
       this.controls.update()
-      requestAnimationFrame(this.Update)
     },
 
+    // Load all building by geojson, this part can connect to the remote source for tile data
+    LoadBuildings(api){
+      // Get geo json data
+      Request.Get(api, [], false, (res)=>{
+        let geojson = res.data
+        let features = geojson["features"]
+
+        // Max number, however has no order !!
+        let count = features.length
+        if(features.length > 600){
+          count = 600
+        }
+
+        // Render all building
+        for(let i=0;i<count;i++){
+          let fel = features[i]
+          // Only render when geometry is Polygon
+          if(fel.geometry.type == "Polygon"){
+            // Render building
+            this.addBuilding(fel.geometry.coordinates, fel.properties["addr:housename"])
+          }
+        }
+
+      })
+    },
+
+    // Render building by geojson->geometry->coordinates points data, a set 2-d array
+    addBuilding(d, name){
+
+      for(let i=0;i<d.length;i++){
+
+        let el = d[i]
+
+        // Create a shape object for create model after
+        let shape = new THREE.Shape()
+
+        // Get deeper layer of point data
+        for(let ii=0;ii<el.length;ii++){
+          let elp = el[ii]
+
+          //convert position from the center position
+          elp = ThreeBasic.GPSRelativePosition([elp[1], elp[0]], [55.943686, -3.188822])
+
+          // Draw shape
+          if(ii == 0){
+            shape.moveTo(elp[1], elp[0])
+          } else {
+            shape.lineTo(elp[1], elp[0])
+          }
+        }
+
+        // Extrude Shape to Geometry
+        let extrudeSettings = { depth: 0.1, bevelEnabled: false, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 };
+        let geometry = new THREE.ExtrudeBufferGeometry( shape, extrudeSettings )
+        geometry.computeBoundingBox()
+
+        // Create Mesh
+        let mesh = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial() )
+
+        // Name by building name (if exist)
+        mesh.name = name ? name : "Building"
+
+        // Add to interactive root group
+        this.iR.add(mesh)
+
+        // Adjust position
+        let finalPosi = ThreeBasic.GPSRelativePosition([el[parseInt(el.length / 2)][1], el[parseInt(el.length / 2)][0]], [55.943686, -3.188822])
+        mesh.position = new THREE.Vector3(finalPosi[1], 0.1, finalPosi[0])
+        
+        // Rescale
+        //mesh.scale = new THREE.Vector3(0.8,0.8,0.8)
+
+        // Rotate by 90 Degree (causing by lineTo only support x and y)
+        mesh.rotation.x = Math.PI / 2
+        
+      }
+    },
+
+    // Load All Lights
     LoadLights (api) {
 
       let that = this
@@ -154,7 +249,7 @@ export default {
           }
 
           /*if (el.shadow) {
-            // 改这个参数能缓解疙瘩点
+            // 改这个参数能缓解阴影制造的疙瘩点
             //light.shadow.bias = 0
             light.castShadow = true
             light.shadow.mapSize.width = 512
@@ -162,6 +257,7 @@ export default {
             light.shadow.camera.near = 0.5
             light.shadow.camera.far = 500 
           }*/
+
           light.name = el.name
           //console.log(light)
           
@@ -274,7 +370,7 @@ export default {
             obj.children[i].material.opacity = opa
           }
       }
-      return obj
+      return true
     },
 
 

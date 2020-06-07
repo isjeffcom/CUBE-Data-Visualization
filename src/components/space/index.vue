@@ -1,5 +1,6 @@
 <template>
   <div id="space">
+    <div id="building-info"></div>
     <div id="cont"></div>
   </div>
 </template>
@@ -10,6 +11,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 
+//import ui from '../ui'
 
 import ThreeBasic from '../../utils/ThreeBasic'
 import Request from '../../utils/Request'
@@ -26,6 +28,9 @@ export default {
       // ENV
       publicPath: process.env.BASE_URL,
 
+      // Map
+      Center: [55.943686, -3.188822],
+
       // 3D Space
       scene: null,
       renderer: null,
@@ -35,10 +40,17 @@ export default {
       loadManager: null,
       iR: null,
 
+      // 2D UI
+      allDots:[],
+      allDotsEl:[],
+
+      // Current UI Reactive Vars
+      Selected: null,
+
       // Config Address
       conf_Lights: "./assets/config/lights.json",
       cont_Models: "./assets/config/models.json",
-      conf_GeoJSON: "./assets/geo/edinburgh.geojson"
+      conf_GeoJSON: "./assets/geo/edinburgh_road.geojson"
     }
   },
   mounted(){
@@ -64,7 +76,16 @@ export default {
         x: ( evt.clientX / window.innerWidth ) * 2 - 1,
         y: - ( evt.clientY / window.innerHeight ) * 2 + 1
       }
-        that.checkIntersection(mouse)
+
+      // Save detection result
+      let hitted = that.checkIntersection(mouse)
+
+      // If clicked and hit something
+      if(hitted){
+        if(hitted.infoType == "Building") this.SelectBuilding(hitted)
+      } else {
+        this.RemoveAllDots()
+      }
     }, false)
   },
 
@@ -75,7 +96,7 @@ export default {
       let cont = document.getElementById('cont')
 
       // Init Camera
-      this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, 1, 2000)
+      this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, 1, 100)
       this.camera.position.x = 0
       this.camera.position.y = 5
 
@@ -84,8 +105,8 @@ export default {
 
       // Init Scene
       this.scene = new THREE.Scene()
-      this.scene.background = new THREE.Color( 0xa0a0a0 )
-      this.scene.fog = new THREE.Fog( 0xa0a0a0, 10, 300 )
+      this.scene.background = new THREE.Color( 0x222222 )
+      this.scene.fog = new THREE.Fog( 0x444444, 10, 60 )
 
       // Init iR
       this.iR = ThreeBasic.AddGroup("IR", "Interacitve-Root")
@@ -94,7 +115,7 @@ export default {
       // Init Light
       this.LoadLights(this.conf_Lights)
 
-      let gridHelper = new THREE.GridHelper( 10, 10 )
+      let gridHelper = new THREE.GridHelper( 60, 160, new THREE.Color( 0x555555 ), new THREE.Color( 0x333333 ) )
       this.scene.add( gridHelper )
 
       // Init Models Loading Manager
@@ -108,9 +129,7 @@ export default {
       }
 
       // Init Loading Models
-      //this.LoadModels(this.cont_Models, this.scene)
-      this.LoadBuildings(this.conf_GeoJSON, this.scene)
-      //this.addBuilding()
+      this.LoadElements(this.conf_GeoJSON, this.scene)
 
       // Init Ray Caster
       this.raycaster = new THREE.Raycaster
@@ -147,37 +166,53 @@ export default {
       requestAnimationFrame(this.Update)
       this.renderer.render(this.scene, this.camera)
       this.controls.update()
+      this.UpdateDots(this.camera, this.allDots)
     },
 
     // Load all building by geojson, this part can connect to the remote source for tile data
-    LoadBuildings(api){
+    LoadElements(api){
       // Get geo json data
       Request.Get(api, [], false, (res)=>{
-        let geojson = res.data
-        let features = geojson["features"]
+        console.log(res)
+        let features = res.data["features"]
 
-        // Max number, however has no order !!
+        // Max building number
         let count = features.length
-        if(features.length > 600){
-          count = 600
+        if(features.length > 1000){
+          //count = 1000
         }
 
         // Render all building
         for(let i=0;i<count;i++){
+
           let fel = features[i]
+
+          // Just in case properties value does not exist
+          if(!fel["properties"]) return
+
+          let info = fel["properties"]
           // Only render when geometry is Polygon
-          if(fel.geometry.type == "Polygon"){
+          if(info["building"]){
             // Render building
-            this.addBuilding(fel.geometry.coordinates, fel.properties["addr:housename"])
+            this.addBuilding(fel.geometry.coordinates, info, info["building:levels"])
+          }
+
+          else if(info["highway"]){
+            
+            // Render Roads
+            if(fel.geometry.type == "LineString" && info.highway != "pedestrian" && info.highway != "footway") this.addRoad(fel.geometry.coordinates, info)
           }
         }
-
       })
     },
 
     // Render building by geojson->geometry->coordinates points data, a set 2-d array
-    addBuilding(d, name){
+    addBuilding(d, info, height=1){
 
+      // default value for height
+      if(!height) height = 1
+
+      // Loop for all nodes
       for(let i=0;i<d.length;i++){
 
         let el = d[i]
@@ -190,7 +225,7 @@ export default {
           let elp = el[ii]
 
           //convert position from the center position
-          elp = ThreeBasic.GPSRelativePosition([elp[1], elp[0]], [55.943686, -3.188822])
+          elp = ThreeBasic.GPSRelativePosition([elp[1], elp[0]], this.Center)
 
           // Draw shape
           if(ii == 0){
@@ -201,7 +236,7 @@ export default {
         }
 
         // Extrude Shape to Geometry
-        let extrudeSettings = { depth: 0.1, bevelEnabled: false, bevelSegments: 2, steps: 2, bevelSize: 1, bevelThickness: 1 };
+        let extrudeSettings = {curveSegments: 1, depth: 0.1 * height, bevelEnabled: false };
         let geometry = new THREE.ExtrudeBufferGeometry( shape, extrudeSettings )
         geometry.computeBoundingBox()
 
@@ -209,14 +244,16 @@ export default {
         let mesh = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial() )
 
         // Name by building name (if exist)
-        mesh.name = name ? name : "Building"
+        mesh.name = info["name"] ? info["name"] : "Building"
+        mesh.infoType = "Building"
+        mesh.info = info
 
         // Add to interactive root group
         this.iR.add(mesh)
 
         // Adjust position
-        let finalPosi = ThreeBasic.GPSRelativePosition([el[parseInt(el.length / 2)][1], el[parseInt(el.length / 2)][0]], [55.943686, -3.188822])
-        mesh.position = new THREE.Vector3(finalPosi[1], 0.1, finalPosi[0])
+        let finalPosi = ThreeBasic.GPSRelativePosition([el[parseInt(el.length / 2)][1], el[parseInt(el.length / 2)][0]], this.Center)
+        mesh.position = new THREE.Vector3(finalPosi[1], 0.1 + extrudeSettings.depth, finalPosi[0])
         
         // Rescale
         //mesh.scale = new THREE.Vector3(0.8,0.8,0.8)
@@ -225,6 +262,45 @@ export default {
         mesh.rotation.x = Math.PI / 2
         
       }
+    },
+
+    addRoad(d, info){
+
+      // Defind material
+      let mat = new THREE.LineBasicMaterial( { color: 0x0000ff } )
+
+      // Init points array
+      let points = []
+
+      // Loop for all nodes
+      for(let i=0;i<d.length;i++){
+        
+        if(!d[0][1]) return
+        
+        let el = d[i]
+
+        //Just in case
+        if(!el[0] || !el[1]) return
+        
+        let elp = [el[0], el[1]]
+
+        //convert position from the center position
+        elp = ThreeBasic.GPSRelativePosition([elp[1], elp[0]], this.Center)
+        
+        // Draw Line
+        points.push( new THREE.Vector3( elp[1], 0.1, elp[0] ) )
+      }
+
+      let geometry = new THREE.BufferGeometry().setFromPoints( points )
+      let line = new THREE.Line( geometry, mat )
+      line.info = info
+      this.iR.add(line)
+      console.log("road added")
+
+      // Adjust position
+      let finalPosi = ThreeBasic.GPSRelativePosition([d[parseInt(d.length / 2)][1], d[parseInt(d.length / 2)][0]], this.Center)
+      line.position = new THREE.Vector3(finalPosi[1], 0.1, finalPosi[0])
+      return
     },
 
     // Load All Lights
@@ -288,8 +364,6 @@ export default {
         // Handle Add Process
         (obj) => {
           
-          // console.log(obj)
-          
           obj.scene.position.x = objPosi.x
           obj.scene.position.y = objPosi.y
           obj.scene.position.z = objPosi.z
@@ -322,6 +396,101 @@ export default {
       )
     },
 
+    // Switch Room
+    // 点击房间
+    SelectBuilding (obj) {
+
+      // If None selected
+      if(!this.Selected || this.Selected["id"] != obj["id"]){
+        // Save selected
+        this.Selected = obj.id
+
+        // Remove others
+        this.RemoveAllDots()
+
+        // Push to point array (allow multiple in principle)
+        let arr = []
+        arr.push(obj)
+
+        // Create Dots
+        this.LoadAllDots(this.camera, arr)
+        return
+      }
+
+      // If Same as last one
+      else if(this.Selected["id"] == obj["id"]) {
+        this.Selected = null
+        this.RemoveAllDots()
+        return
+      }
+
+      else {
+        this.RemoveAllDots()
+        return
+      }
+    },
+
+    // 加载所有的信息锚点
+    LoadAllDots (ca, obj){
+        for(var i = 0; i < obj.length; i++){
+            var thisDot = obj[i]
+            this.allDots.push(thisDot)
+            this.allDotsEl.push(this.addDot(thisDot, ca))
+        }
+        return
+    },
+
+    // 添加单个信息锚点
+    addDot (infoObj, ca) {
+
+      /* CREATE IN 2D*/
+      let d = ThreeBasic.Draw2DDot(ca, infoObj, this.renderer.domElement).el
+      document.getElementById('building-info').appendChild(d)
+
+      if(infoObj.position.x > 0){
+          d.appendChild(ThreeBasic.Draw2DText(-(infoObj.name.length * 9), 16, 0, 'center', infoObj.name))
+      }else{
+          d.appendChild(ThreeBasic.Draw2DText(-(infoObj.name.length * 9), 16, 180, 'center', infoObj.name))
+      }
+      
+      return d
+        
+    },
+
+    // 更新所有信息锚点，在animate()函数中循环fire
+    UpdateDots (ca, obj) {
+      if(!obj){
+        return
+      }
+
+      let canvas = this.renderer.domElement
+      let thisDot, dotPosi, x, y,deg
+
+      for(let i = 0; i < obj.length; i++){
+          thisDot = obj[i]
+          dotPosi = ThreeBasic.WorldToScreenPosi(ca, thisDot)
+          x = Math.round(( 0.5 + dotPosi.x / 2 ) * ( canvas.width / window.devicePixelRatio ));
+          y = Math.round(( 0.5 + -(dotPosi.y) / 2 ) * ( canvas.height / window.devicePixelRatio ));
+
+          if(thisDot.position.x<0){
+              deg = -180
+          }else{
+              deg = 0
+          }
+
+          this.allDotsEl[i].style.transform = 'translate3d(' + x + 'px, ' + y + 'px, 0px) rotate(' + deg + 'deg)'
+          
+      }
+      return
+    },
+
+    // 移除所有信息锚点
+    RemoveAllDots() {
+        this.allDots.length = 0
+        this.allDotsEl.length = 0
+        document.getElementById('building-info').innerHTML = ""
+    },
+
     // 2D画布上点击，返回选中的目标
     // 向屏幕发射一条射线，返回触碰到的所有物体，返回第一个物体
     checkIntersection(pointer) {
@@ -329,7 +498,7 @@ export default {
         let intersects = this.raycaster.intersectObjects( [ this.iR ], true )
         if ( intersects.length > 0 ) {
           let selectedObject = intersects[0].object
-          return selectedObject.parent
+          return selectedObject
         } else {
             return false
         }

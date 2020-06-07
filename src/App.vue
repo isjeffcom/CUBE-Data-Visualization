@@ -17,7 +17,6 @@ export default {
 
 <style>
 *{
-  background: #111;
   margin: 0;
   padding: 0;
 }

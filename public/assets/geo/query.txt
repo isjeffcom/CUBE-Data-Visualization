@@ -1,0 +1,5 @@
+[out:json][timeout:30];(
+way["building"]({{bbox}});
+relation["building"]["type"="multipolygon"]({{bbox}});
+way["highway"]({{bbox}});
+);out;>;out qt;

@@ -1,4 +1,6 @@
 const THREE = require('three')
+const GEOLIB = require('geolib')
+const Coordinate = require('./Coordinate')
 
 /**
  * Func: Create a THREE Group
@@ -21,7 +23,7 @@ function AddGroup(name, displayName){
  * 
  * @return {THREE.Vector3} THREE.Vector3
  */
-function GPSToVector3(lat,lon,radius){
+function GPSToVector3(lat,lon,radius=6371){
 
     let phi   = (90-lat)*(Math.PI/180)
     let theta = (lon+180)*(Math.PI/180)
@@ -30,22 +32,70 @@ function GPSToVector3(lat,lon,radius){
     let z = ((radius) * Math.sin(phi)*Math.sin(theta))
     let y = ((radius) * Math.cos(phi))
 
-    return new THREE.Vector3(x,y,z)
+    return [x, z]
+
 }
 
 /**
  * Func: GPS to Three World
  * 
- * @param {Array} objPosi [lat, lon]
- * @param {Array} centerPosi [lat, lon]
+ * @param {Array} objPosi [Lat, Lon]
+ * @param {Array} centerPosi [Lat, Lon]
  * 
  * @return {Array} THREE.Vector3
  */
 
-function GPSRelativePosition(objPosi = [0,0], centerPosi = [0,0]){
-    //console.log(objPosi)
-    //console.log(centerPosi)
-    return [(objPosi[0]-centerPosi[0])*1000, (objPosi[1]-centerPosi[1])*1000]
+// 地图投影世界上没有完美计算方法，数字地图通用的是墨卡托投影法，但墨卡托投影法计算消耗太高。1和3都能用，3不精确，1比较均衡
+
+// 1. WGS84 通过距离和角度，三角函数计算三角边，稍微快点
+function GPSRelativePosition(objPosi, centerPosi){
+
+    // Get GPS distance
+    let dis = GEOLIB.getDistance(objPosi, centerPosi)
+
+    // Get bearing angle
+    let bearing = GEOLIB.getRhumbLineBearing(objPosi, centerPosi)
+
+    // Calculate X by centerPosi.x + distance * cos(rad)
+    let x = centerPosi[0] + (dis * Math.cos(bearing * Math.PI / 180))
+
+    // Calculate Y by centerPosi.y + distance * sin(rad)
+    let y = centerPosi[1] + (dis * Math.sin(bearing * Math.PI / 180))
+
+    // Reverse X (it work) 
+    return [-x/100, y/100]
+}
+
+// 2. 墨卡托投影计算法 性能消耗极高，精确
+// function GPSRelativePosition(objPosi = [0,0], centerPosi = [0,0]){
+//     objPosi = Coordinate.GetXY(objPosi[0], objPosi[1])
+    
+//     centerPosi = Coordinate.GetXY(centerPosi[0], centerPosi[1])
+//     console.log(centerPosi)
+//     //console.log([(centerPosi.x - objPosi.x)/100, (centerPosi.y - objPosi.y)/100])
+//     return [(centerPosi.x - objPosi.x)/500, (centerPosi.y - objPosi.y)/500]
+// }
+
+// 3. 直接相对位置计算法，忽略弧度不做投影，能用，整个斜的
+// function GPSRelativePosition(objPosi = [0,0], centerPosi = [0,0]){
+//     return [(centerPosi[0] - objPosi[0])*1000, (centerPosi[1] - objPosi[1])*1000]
+//     //return [(objPosi[0]-centerPosi[0])*1000, (objPosi[1]-centerPosi[1])*1000]
+// }
+
+
+function GPSCoorDistance(lat1, lon1, lat2, lon2, unit) {
+	const R = 6371e3 // earth radius
+    const φ1 = lat1 * Math.PI/180 // φ, λ in radians
+    const φ2 = lat2 * Math.PI/180
+    const Δφ = (lat2-lat1) * Math.PI/180
+    const Δλ = (lon2-lon1) * Math.PI/180
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+
+    return R * c // in metres
 }
 
 // 绘制一个2D的锚点
@@ -109,14 +159,18 @@ function Draw2DText (left, top, deg, align, str) {
     return a
 }
 
+// 计算3D坐标在2D画布上的映射, 真实位置
+function WorldToScreenPosiReal (ca, cPObj) {
+    
+    var p = new THREE.Vector3(cPObj.realPosi.x, cPObj.realPosi.y, cPObj.realPosi.z)
+    
+    return p.project(ca)
+}
+
 // 计算3D坐标在2D画布上的映射
 function WorldToScreenPosi (ca, cPObj) {
     
-    var p = new THREE.Vector3()
-    
-    p.x = cPObj.position.x
-    p.y = cPObj.position.y
-    p.z = cPObj.position.z
+    var p = new THREE.Vector3(cPObj.position.x, cPObj.position.y, cPObj.position.z)
     
     return p.project(ca)
 }
@@ -127,5 +181,6 @@ module.exports = {
     Draw2DDot: Draw2DDot,
     Draw2DText: Draw2DText,
     WorldToScreenPosi: WorldToScreenPosi,
+    WorldToScreenPosiReal: WorldToScreenPosiReal,
     GPSRelativePosition: GPSRelativePosition
 }

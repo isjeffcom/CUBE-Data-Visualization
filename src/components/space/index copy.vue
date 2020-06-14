@@ -270,13 +270,15 @@ export default {
         let dash 
         let length = parseInt(this.Animated_Line_Distances[i])
 
+        
+        
         if (parseInt(line.material.dashSize) > length) {
-          //console.log("b")
+          console.log("b")
           line.material.dashSize = 0
           //line.material.gapSize -= this.Animated_Line_Speed
           //line.material.gapSize = line.material.gapSize - 1
         } else {
-          //console.log("a")
+          console.log("a")
           line.material.dashSize += this.Animated_Line_Speed
         }
       }
@@ -286,12 +288,11 @@ export default {
     LoadElements(api){
       let that = this
       // Create MAT
-      this.MAT_BUILDING = new THREE.MeshPhongMaterial({transparent: true, opacity: 0.95})
+      this.MAT_BUILDING = new THREE.MeshPhongMaterial()
       this.MAT_ROAD = new THREE.LineBasicMaterial( { color: 0x4F80FF } )
 
       // Get geo json data
       Request.Get(api, [], false, (res)=>{
-        console.log(res)
         let features = res.data["features"]
         
         // Max building number
@@ -313,10 +314,6 @@ export default {
           if(info["building"]){
             // Render building
             this.addBuilding(fel.geometry.coordinates, info, info["building:levels"])
-            // if(info["addr:housename"]){
-            //   if( info["addr:housename"]== "Hugh Robson Building") this.addBuilding(fel.geometry.coordinates, info, info["building:levels"])
-              
-            // }
           }
 
           else if(info["highway"]){
@@ -326,11 +323,11 @@ export default {
           }
         }
 
-        this.$nextTick(()=>{
-          let mergeGeometry = BufferGeometryUtils.mergeBufferGeometries(that.geometries)
-          let mesh = new THREE.Mesh(mergeGeometry, that.MAT_BUILDING)
-          that.scene.add(mesh)
-        })
+        // this.$nextTick(()=>{
+        //   let mergeGeometry = BufferGeometryUtils.mergeBufferGeometries(that.geometries)
+        //   let mesh = new THREE.Mesh(mergeGeometry, that.MAT_BUILDING)
+        //   that.scene.add(mesh)
+        // })
       })
     },
 
@@ -339,55 +336,35 @@ export default {
 
       // default value for height
       if(!height) height = 1
-
-      let holes = []
-      let shape, geometry
       
       // Loop for all nodes
       for(let i=0;i<d.length;i++){
 
         let el = d[i]
-        
-        // Main
-        if(i == 0){
-          shape = BuildModels.GenShape(el, this.Center)
-        } 
-        
-        // Hole
-        else {
-          holes.push(BuildModels.GenShape(el, this.Center))
-        }
+
+        let geometry = BuildModels.GenBuilding(el, this.Center, height)
+
+        // Adjust geometry rotation
+        geometry.rotateX(Math.PI / 2)
+        geometry.rotateZ(Math.PI)
+
+        // Push to array ready for merge
+        //this.geometries.push(geometry)
+        let mesh = new THREE.Mesh(geometry, this.MAT_BUILDING)
+        this.scene.add(mesh)
+
+        // Add Helper for user interaction
+        let helper = BuildModels.GenHelper(geometry)
+
+        // Attach info
+        helper.name = info["name"] ? info["name"] : "Building"
+        helper.infoType = "Building"
+        helper.info = info
+
+        this.Collider_Building.push(helper)
+        //this.scene.add( helper )
+
       }
-      for(let h=0;h<holes.length;h++){
-        shape.holes.push(holes[h])
-      }
-      
-
-      // Extrude Shape to Geometry
-      geometry = BuildModels.GenBuildingGeometry(shape, {
-          curveSegments: 2,  // curves
-          steps: 1, // subdividing segments
-          depth: 0.05 * height, // Height
-          bevelEnabled: false // Bevel (round corner)
-      })
-      //let geometry = BuildModels.GenBuilding(el, this.Center, height)
-
-      // Adjust geometry rotation
-      geometry.rotateX(Math.PI / 2)
-      geometry.rotateZ(Math.PI)
-
-      // Push to array ready for merge
-      this.geometries.push(geometry)
-
-      // Add Helper for user interaction
-      let helper = BuildModels.GenHelper(geometry)
-
-      // Attach info
-      helper.name = info["name"] ? info["name"] : "Building"
-      helper.infoType = "Building"
-      helper.info = info
-
-      this.Collider_Building.push(helper)
     },
 
     addRoad(d, info){

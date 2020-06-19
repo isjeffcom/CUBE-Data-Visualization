@@ -13,6 +13,7 @@ import Stats from 'three/examples/jsm/libs/stats.module.js'
 //import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { MapControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { Water } from 'three/examples/jsm/objects/Water'
 
 //import ui from '../ui'
 
@@ -20,6 +21,8 @@ import ThreeBasic from '../../utils/ThreeBasic'
 import BuildModels from '../../utils/BuildModels'
 import Request from '../../utils/Request'
 import { Vector3 } from 'three'
+
+import * as GeoTIFF from "geotiff"
 
 export default {
   name: 'space',
@@ -38,6 +41,9 @@ export default {
       // Debug
       stats: null,
 
+      // Flags
+      FLAG_ROAD_ANI: true,
+
       // 3D Space
       clock: 0,
       time: 0,
@@ -48,19 +54,25 @@ export default {
       controls: null,
       raycaster: null,
       loadManager: null,
+      sun: null, // a light object
+
+      // 3D Groups
       iR: null,
       iR_Building: null,
       iR_Road: null,
       iR_Line: null,
+      iR_Water: null,
 
       // Information Colliders
       Collider_Building: [],
 
-      // Line Speed
-      Animated_Line_Speed: 0.1,
-      Animated_Line_ASpeed: THREE.Math.degToRad(20),
+      // Aniamted Line
+      Animated_Lines: [],
+      Animated_Line_Speed: 0.004,
       Animated_Line_Distances: [],
 
+      //Animated_Line_ASpeed: THREE.Math.degToRad(20),
+      
       // Test
       geometries: [],
 
@@ -71,6 +83,9 @@ export default {
       // 3D Object
       MAT_BUILDING: null,
       MAT_ROAD: null,
+      MAT_ANI_ROAD: null,
+      MAT_WATER: null,
+      MAT_WATER_NORMAL: null,
 
       // Current UI Reactive Vars
       Selected: null,
@@ -78,7 +93,8 @@ export default {
       // Config Address
       conf_Lights: "./assets/config/lights.json",
       cont_Models: "./assets/config/models.json",
-      conf_GeoJSON: "./assets/geo/edinburgh_road.geojson"
+      conf_GeoJSON: "./assets/geo/edinburgh_road.geojson",
+      conf_GeoJSON_Water: "./assets/geo/edinburgh_water.geojson"
     }
   },
   mounted(){
@@ -128,20 +144,21 @@ export default {
       this.clock = new THREE.Clock()
 
       // Init Camera
-      this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, 1, 100)
+      this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, 1, 200)
       this.camera.position.set( 8, 4, 0 );
       this.camera.name = "Main-Camera"
 
       // Init Scene
       this.scene = new THREE.Scene()
       this.scene.background = new THREE.Color( 0x222222 )
-      this.scene.fog = new THREE.Fog( 0x444444, 10, 60 )
+      this.scene.fog = new THREE.Fog( 0x444444, 10, 150 )
 
       // Init iR
       this.iR = ThreeBasic.AddGroup("iR", "Interactive-Root")
       this.iR_Building = ThreeBasic.AddGroup("IRB", "IR_Building")
       this.iR_Road = ThreeBasic.AddGroup("IRR", "IR_Road")
       this.iR_Line = ThreeBasic.AddGroup("IRL", "IR_Line")
+      this.iR_Water = ThreeBasic.AddGroup("IRW", "IR_Water")
       this.scene.add(this.iR)
 
       // Sprate building and roads root
@@ -149,14 +166,20 @@ export default {
         this.iR.add(this.iR_Building)
         this.iR.add(this.iR_Road)
         this.iR.add(this.iR_Line)
+        this.iR.add(this.iR_Water)
       })
+
+      let sun = new THREE.DirectionalLight( 0xffffff, 0.8 )
+      this.sun = sun
+      this.sun.position.set(0, 3, 0)
+			this.scene.add( this.sun )
 
       // Init Light
       this.LoadLights(this.conf_Lights)
 
       // Init Gird Helper
-      let gridHelper = new THREE.GridHelper( 60, 160, new THREE.Color( 0x555555 ), new THREE.Color( 0x333333 ) )
-      this.scene.add( gridHelper )
+      // let gridHelper = new THREE.GridHelper( 60, 160, new THREE.Color( 0x555555 ), new THREE.Color( 0x333333 ) )
+      // this.scene.add( gridHelper )
 
       // Init Models Loading Manager
       this.loadManager = new THREE.LoadingManager()
@@ -169,7 +192,9 @@ export default {
       }
 
       // Init Loading Models
-      this.LoadElements(this.conf_GeoJSON, this.scene)
+      this.LoadElements(this.conf_GeoJSON)
+      //this.LoadWaters(this.conf_GeoJSON_Water)
+      this.LoadTerrain()
 
       // Init Ray Caster
       this.raycaster = new THREE.Raycaster
@@ -177,7 +202,8 @@ export default {
       // Init render
       // 初始化渲染
       this.renderer = new THREE.WebGLRenderer({antialias: true, precision: "lowp", powerPreference: "low-power"})
-      this.renderer.shadowMap.enabled = false
+      this.renderer.shadowMap.enabled = true
+			//this.renderer.outputEncoding = THREE.sRGBEncoding;
       //this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
       this.renderer.setPixelRatio( window.devicePixelRatio )
       this.renderer.setSize(window.innerWidth, window.innerHeight)
@@ -195,7 +221,7 @@ export default {
       this.controls.maxDistance = 800
 
       // Limit how much user can see by polar angle(vertical)
-      this.controls.maxPolarAngle = Math.PI / 2.4
+      //this.controls.maxPolarAngle = Math.PI / 2.4
       
       // Auto Rotate
       this.controls.autoRotate = false
@@ -213,7 +239,6 @@ export default {
       this.stats = new Stats()
       cont.appendChild( this.stats.dom )
       
-      this.TestAnimatedLine([[0,0], [20, 20]])
 
     },
 
@@ -234,52 +259,130 @@ export default {
       this.controls.update()
       this.UpdateDots(this.camera, this.allDots)
 
-      this.UpdateAnimatedLine()
+      this.UpdateAniLines()
+      this.UpdateWater()
 
       this.stats.update()
       // Triangles faces count
       //console.log(this.renderer.info.render.triangles)
     },
 
-    TestAnimatedLine(data){
-      let mat = new THREE.LineDashedMaterial({ color: 0xff9900 })
+    addAnimatedLine(geometry, length){
+      let animatedLine = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: 0x00FFFF }))
+      animatedLine.material.transparent = true
+      animatedLine.position.y = 0.5
+      animatedLine.material.dashSize = 0
+      animatedLine.material.gapSize = 1000
 
-      let points = []
-      points.push( new THREE.Vector3( data[0][0], 2, data[0][1] ) )
-      points.push( new THREE.Vector3( data[1][0], 2, data[1][1] ) )
-      
-      let geometry = new THREE.BufferGeometry().setFromPoints( points )
-      let line = new THREE.Line( geometry, mat )
+      this.Animated_Line_Distances.push(length)
 
-      line.computeLineDistances()
-
-      line.material.dashSize = 0
-      line.material.gapSize = 1000
-      line.scale.setScalar(0.1)
-      this.Animated_Line_Distances[0] = geometry.attributes.lineDistance.array[ geometry.attributes.lineDistance.count - 1]
-      this.iR_Line.add(line)
+      return animatedLine
 
     },
 
-    UpdateAnimatedLine(){
-      let arr = this.iR_Line.children
+    UpdateAniLines(){
+      // If no animated line than do nothing
+      if(this.iR_Line.children.length <= 0) return
 
-      for(let i=0;i<arr.length;i++){
-        let line = arr[i]
 
-        let dash 
+      for(let i=0;i<this.iR_Line.children.length;i++){
+        let line = this.iR_Line.children[i]
+
+        let dash = parseInt(line.material.dashSize)
         let length = parseInt(this.Animated_Line_Distances[i])
 
-        if (parseInt(line.material.dashSize) > length) {
+
+        if (dash > length) {
           //console.log("b")
           line.material.dashSize = 0
-          //line.material.gapSize -= this.Animated_Line_Speed
-          //line.material.gapSize = line.material.gapSize - 1
+          line.material.opacity = 1
         } else {
           //console.log("a")
           line.material.dashSize += this.Animated_Line_Speed
+          line.material.opacity = line.material.opacity > 0 ? line.material.opacity - 0.002 : 0
         }
       }
+    },
+
+
+    async LoadTerrain(){
+      
+      const rawTiff  = await GeoTIFF.fromUrl('./assets/geo/edinburgh_dem.tif')
+      const tifImage = await rawTiff.getImage()
+      // const image = {
+      //   width: tifImage.getWidth(),
+      //   height: tifImage.getHeight()
+      // }
+
+      // const start = ThreeBasic.EPSG3857meters2degress(-367250.317724, 7538522.125439)
+      // const end = ThreeBasic.EPSG3857meters2degress(-346663.619934, 7557378.475784)
+
+      const start = [-3.302638, 55.900416]
+      const end = [-3.128194, 55.995138]
+
+      let leftTop = ThreeBasic.GPSRelativePosition(start, this.Center)
+      let rightBottom = ThreeBasic.GPSRelativePosition(end, this.Center)
+      let x = Math.round(Math.abs(leftTop[0] - rightBottom[0]))
+      let y = Math.round(Math.abs(leftTop[1] - rightBottom[1]))
+
+
+      //console.log(leftTop)
+
+      // Our initial plane geometry
+      // const geometry = new THREE.PlaneGeometry(
+      //   //this.GPSRelativePosition([])
+      //   image.width,
+      //   image.height,
+      //   image.width - 1,
+      //   image.height - 1
+      // )
+
+      const geometry = new THREE.PlaneGeometry(
+        //this.GPSRelativePosition([])
+        x,
+        y,
+        x - 1,
+        y - 1
+      )
+
+      // Read image pixel values that each pixel corresponding a height
+      const data = await tifImage.readRasters({ width: x, height: y, resampleMethod: 'bilinear', interleave: true })
+      console.log(x,y)
+      
+      // Fill z values of the geometry
+      console.time("parseGeom")
+      for(let i=0;i<data.length;i++){
+        let el = data[i]
+        // if(i % 16 == 0) {
+        //   //console.log(geometry.vertices[c], c)
+          
+        // }
+
+        if(geometry.vertices[i]){
+          geometry.vertices[i].z = (el/20)
+        } 
+      }
+      // geometry.vertices.forEach((geom, index) => {
+      //   //console.log(data[index])
+      //   geom.z = (data[index] / 10) * -1
+      // })
+      console.timeEnd("parseGeom")
+
+      geometry.rotateX(Math.PI / 2)
+      geometry.rotateY(Math.PI / 2)
+      geometry.rotateZ(Math.PI)
+      let texture = new THREE.TextureLoader().load("./assets/textures/terrain.jpg", (onload)=>{
+        console.log(onload)
+      }, null, (err)=>{
+        console.log(err)
+      })
+      let plane = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({color: 0xffffff, side: THREE.DoubleSide, wireframe: true}) )
+      
+      //plane.scale.set(.5, .5, .5)
+      
+      this.scene.add(plane)
+      plane.position.y = -1
+
     },
 
     // Load all building by geojson, this part can connect to the remote source for tile data
@@ -287,11 +390,11 @@ export default {
       let that = this
       // Create MAT
       this.MAT_BUILDING = new THREE.MeshPhongMaterial({transparent: true, opacity: 0.95})
-      this.MAT_ROAD = new THREE.LineBasicMaterial( { color: 0x4F80FF } )
+      this.MAT_ROAD = new THREE.LineBasicMaterial( { color: 0x1B4686 } )
+      this.MAT_ANI_ROAD = new THREE.LineDashedMaterial({ color: 0xff9900 })
 
       // Get geo json data
       Request.Get(api, [], false, (res)=>{
-        console.log(res)
         let features = res.data["features"]
         
         // Max building number
@@ -334,6 +437,88 @@ export default {
       })
     },
 
+    LoadWaters(api){
+      
+      this.MAT_WATER_NORMAL = new THREE.TextureLoader().load( './assets/textures/waternormals.png', function ( texture ) {
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+      })
+
+      this.MAT_WATER = {
+        textureWidth: 1,
+        textureHeight: 1,
+        waterNormals: this.MAT_WATER_NORMAL,
+        alpha: 1.0,
+        sunDirection: this.sun.position.clone().normalize(),
+        sunColor: 0xFFFFFF,
+        waterColor: 0x001E0F,
+        distortionScale: 4,
+        fog: this.scene.fog !== undefined
+      }
+
+      
+
+      Request.Get(api, [], false, (res)=>{
+        let features = res.data.features
+        
+        for(let i=0;i<features.length;i++){
+          let fel = features[i]
+          if(!fel['properties']) return
+
+          if(fel.properties['natural'] == "water" && fel.geometry.type == "Polygon"){
+            this.addWater(fel.geometry.coordinates, fel.properties)
+          }
+        }
+      })
+    },
+
+    addWater(d, info){
+      let holes = []
+      let shape, geometry
+      
+      for(let i=0;i<d.length;i++){
+        let el = d[i]
+        if(i==0){
+          shape = BuildModels.GenShape(el, this.Center)
+        } else {
+          holes.push(BuildModels.GenShape(el, this.Center))
+        }
+      }
+
+      // Punch a hole
+      for(let h=0;h<holes.length;h++){
+        shape.holes.push(holes[h])
+      }
+
+      geometry = BuildModels.GenWaterGeometry(shape, {
+          curveSegments: 2,  // curves
+          steps: 1, // subdividing segments
+          depth: 0.01, // Height
+          bevelEnabled: false // Bevel (round corner)
+      })
+
+      //geometry.rotation.x = - Math.PI / 2;
+
+      // Adjust geometry rotation
+      geometry.rotateX(Math.PI / 2)
+      geometry.rotateZ(Math.PI)
+      
+      let water = new Water(geometry, this.MAT_WATER)
+
+      this.iR_Water.add(water)
+      
+      
+    },
+
+    UpdateWater(){
+      for(let i=0;i<this.iR_Water.children.length;i++){
+        
+        this.iR_Water.children[i].material.uniforms[ 'time' ].value += 1.0 / 700
+      }
+
+      //this.iR_Water.children[i0].material.uniforms[ 'time' ].value += 1.0 / 1000
+
+    },
+
     // Render building by geojson->geometry->coordinates points data, a set 2-d array
     addBuilding(d, info, height=1){
 
@@ -358,6 +543,8 @@ export default {
           holes.push(BuildModels.GenShape(el, this.Center))
         }
       }
+
+      // Punch a hole
       for(let h=0;h<holes.length;h++){
         shape.holes.push(holes[h])
       }
@@ -387,6 +574,8 @@ export default {
       helper.infoType = "Building"
       helper.info = info
 
+      //this.scene.add(helper)
+
       this.Collider_Building.push(helper)
     },
 
@@ -411,7 +600,7 @@ export default {
         elp = ThreeBasic.GPSRelativePosition([elp[0], elp[1]], this.Center)
         
         // Draw Line
-        points.push( new THREE.Vector3( elp[0], 0.1, elp[1] ) )
+        points.push( new THREE.Vector3( elp[0], 0.5, elp[1] ) )
       }
 
       let geometry = new THREE.BufferGeometry().setFromPoints( points )
@@ -421,11 +610,23 @@ export default {
 
       let line = new THREE.Line( geometry, this.MAT_ROAD )
       line.info = info
+      line.computeLineDistances()
       this.iR_Road.add(line)
+
+      if(this.FLAG_ROAD_ANI){
+        let lineLength = geometry.attributes.lineDistance.array[ geometry.attributes.lineDistance.count - 1]
+        if(lineLength > 0.8){
+          let aniLine = this.addAnimatedLine(geometry, lineLength)
+          this.Animated_Lines.push(aniLine)
+          this.iR_Line.add(aniLine)
+        }
+        
+      }
+      
 
       // Adjust position
       //let finalPosi = ThreeBasic.GPSRelativePosition([d[parseInt(d.length / 2)][1], d[parseInt(d.length / 2)][0]], this.Center)
-      line.position = new THREE.Vector3(line.position.x, 0.1, line.position.z)
+      line.position = new THREE.Vector3(line.position.x, 0.5, line.position.z)
 
       // Calculate Real Position
       let realPosi = ThreeBasic.GPSRelativePosition([d[parseInt(d.length / 2)][0], d[parseInt(d.length / 2)][1]], this.Center)
@@ -460,16 +661,6 @@ export default {
           }
 
           light.castShadow = false
-
-          /*if (el.shadow) {
-            // 改这个参数能缓解阴影制造的疙瘩点
-            //light.shadow.bias = 0
-            light.castShadow = true
-            light.shadow.mapSize.width = 512
-            light.shadow.mapSize.height = 512
-            light.shadow.camera.near = 0.5
-            light.shadow.camera.far = 500 
-          }*/
 
           light.name = el.name
           //console.log(light)

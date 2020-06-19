@@ -5,7 +5,7 @@ const ThreeBasic = require('./ThreeBasic')
 const { Path } = require('three')
 
 const MAT_BUILDING = new THREE.MeshPhongMaterial({transparent: true, opacity: 0.95})
-const MAT_ROAD = new THREE.LineBasicMaterial( { color: 0x0000ff } )
+//const MAT_ROAD = new THREE.LineBasicMaterial( { color: 0x0000ff } )
 
 let Building_Models = []
 let Building_Colliders = []
@@ -197,12 +197,21 @@ function GenLinePoints(data, center){
     return points
 }
 
+function GenWaterGeometry(shape, config){
+    let geometry = new THREE.ExtrudeBufferGeometry( shape, config )
+    geometry.computeBoundingBox()
+
+    return geometry
+    //return new THREE.PlaneBufferGeometry(shape)
+}
+
 
 module.exports = {
     Init: Init,
     GenLine: GenLine,
     GenShape: GenShape,
     GenBuildingGeometry: GenBuildingGeometry,
+    GenWaterGeometry: GenWaterGeometry,
     GenBuilding: GenBuilding,
     GenHelper: GenHelper
 }

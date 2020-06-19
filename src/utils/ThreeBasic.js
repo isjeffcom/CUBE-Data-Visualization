@@ -68,12 +68,11 @@ function GPSRelativePosition(objPosi, centerPosi){
 
 // 2. 墨卡托投影计算法 性能消耗极高，精确
 // function GPSRelativePosition(objPosi = [0,0], centerPosi = [0,0]){
-//     objPosi = Coordinate.GetXY(objPosi[0], objPosi[1])
+//     objPosi = Coordinate.GetXY(objPosi[1], objPosi[0])
     
-//     centerPosi = Coordinate.GetXY(centerPosi[0], centerPosi[1])
-//     console.log(centerPosi)
+//     centerPosi = Coordinate.GetXY(centerPosi[1], centerPosi[0])
 //     //console.log([(centerPosi.x - objPosi.x)/100, (centerPosi.y - objPosi.y)/100])
-//     return [(centerPosi.x - objPosi.x)/500, (centerPosi.y - objPosi.y)/500]
+//     return [(centerPosi.x - objPosi.x)/100, (centerPosi.y - objPosi.y)/100]
 // }
 
 // 3. 直接相对位置计算法，忽略弧度不做投影，能用，整个斜的
@@ -96,6 +95,13 @@ function GPSCoorDistance(lat1, lon1, lat2, lon2, unit) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
 
     return R * c // in metres
+}
+
+function EPSG3857meters2degress(x,y) {
+    var lon = x *  180 / 20037508.34
+    //thanks magichim @ github for the correction
+    var lat = Math.atan(Math.exp(y * Math.PI / 20037508.34)) * 360 / Math.PI - 90; 
+    return [parseFloat(lat.toFixed(6)), parseFloat(lon.toFixed(6))]
 }
 
 // 绘制一个2D的锚点
@@ -178,6 +184,7 @@ function WorldToScreenPosi (ca, cPObj) {
 module.exports = {
     AddGroup: AddGroup,
     GPSToVector3: GPSToVector3,
+    EPSG3857meters2degress: EPSG3857meters2degress,
     Draw2DDot: Draw2DDot,
     Draw2DText: Draw2DText,
     WorldToScreenPosi: WorldToScreenPosi,

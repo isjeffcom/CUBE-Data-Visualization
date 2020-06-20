@@ -22,6 +22,8 @@ import BuildModels from '../../utils/BuildModels'
 import Request from '../../utils/Request'
 import { Vector3 } from 'three'
 
+import { getCenter } from 'geolib'
+
 import * as GeoTIFF from "geotiff"
 
 export default {
@@ -36,7 +38,7 @@ export default {
       publicPath: process.env.BASE_URL,
 
       // Map
-      Center: [-3.188822, 55.943686],
+      Center: { lon: -3.188822, lat: 55.943686 },
 
       // Debug
       stats: null,
@@ -201,7 +203,7 @@ export default {
 
       // Init render
       // 初始化渲染
-      this.renderer = new THREE.WebGLRenderer({antialias: true, precision: "lowp", powerPreference: "low-power"})
+      this.renderer = new THREE.WebGLRenderer({antialias: true})
       this.renderer.shadowMap.enabled = true
 			//this.renderer.outputEncoding = THREE.sRGBEncoding;
       //this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
@@ -260,7 +262,7 @@ export default {
       this.UpdateDots(this.camera, this.allDots)
 
       this.UpdateAniLines()
-      this.UpdateWater()
+      //this.UpdateWater()
 
       this.stats.update()
       // Triangles faces count
@@ -307,7 +309,7 @@ export default {
 
     async LoadTerrain(){
       
-      const rawTiff  = await GeoTIFF.fromUrl('./assets/geo/edinburgh_dem.tif')
+      const rawTiff  = await GeoTIFF.fromUrl('./assets/geo/edinburgh_dem_ds.tif')
       const tifImage = await rawTiff.getImage()
       // const image = {
       //   width: tifImage.getWidth(),
@@ -317,13 +319,27 @@ export default {
       // const start = ThreeBasic.EPSG3857meters2degress(-367250.317724, 7538522.125439)
       // const end = ThreeBasic.EPSG3857meters2degress(-346663.619934, 7557378.475784)
 
-      const start = [-3.302638, 55.900416]
-      const end = [-3.128194, 55.995138]
+      const start = {lat: 55.900416, lon: -3.302638}
+      const end = {lat: 55.995138, lon: -3.128194}
 
-      let leftTop = ThreeBasic.GPSRelativePosition(start, this.Center)
-      let rightBottom = ThreeBasic.GPSRelativePosition(end, this.Center)
-      let x = Math.round(Math.abs(leftTop[0] - rightBottom[0]))
-      let y = Math.round(Math.abs(leftTop[1] - rightBottom[1]))
+      let leftBottom = ThreeBasic.GPSRelativePosition(start, this.Center)
+      let rightTop = ThreeBasic.GPSRelativePosition(end, this.Center)
+
+      let center = getCenter([
+        { latitude: 55.900416, longitude: -3.302638 },
+        { latitude: 55.995138, longitude: -3.128194 }
+      ])
+      //console.log(center, this.Center)
+      
+      let offset = ThreeBasic.GPSRelativePosition({ lat: center.latitude, lon: center.longitude}, this.Center)
+      console.log(offset)
+      let x = Math.abs(leftBottom[0] - rightTop[0])
+      let y = Math.abs(leftBottom[1] - rightTop[1])
+
+
+      //console.log(x/y)
+
+      //console.log(Math.abs(leftTop[0] - rightBottom[0]), x)
 
 
       //console.log(leftTop)
@@ -346,8 +362,7 @@ export default {
       )
 
       // Read image pixel values that each pixel corresponding a height
-      const data = await tifImage.readRasters({ width: x, height: y, resampleMethod: 'bilinear', interleave: true })
-      console.log(x,y)
+      const data = await tifImage.readRasters({ width: Math.round(x), height: Math.round(y), resampleMethod: 'bilinear', interleave: true })
       
       // Fill z values of the geometry
       console.time("parseGeom")
@@ -369,19 +384,24 @@ export default {
       console.timeEnd("parseGeom")
 
       geometry.rotateX(Math.PI / 2)
-      geometry.rotateY(Math.PI / 2)
+      geometry.rotateY(Math.PI)
       geometry.rotateZ(Math.PI)
+
       let texture = new THREE.TextureLoader().load("./assets/textures/terrain.jpg", (onload)=>{
         console.log(onload)
       }, null, (err)=>{
         console.log(err)
       })
+
       let plane = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({color: 0xffffff, side: THREE.DoubleSide, wireframe: true}) )
-      
+      //plane.scale.set(1,-1,1)
       //plane.scale.set(.5, .5, .5)
       
       this.scene.add(plane)
+      plane.position.x = plane.position.x + (-offset[0])
+      plane.position.z = plane.position.z + offset[1]
       plane.position.y = -1
+
 
     },
 
@@ -425,7 +445,7 @@ export default {
           else if(info["highway"]){
             
             // Render Roads
-            if(fel.geometry.type == "LineString" && info.highway != "pedestrian" && info.highway != "footway") this.addRoad(fel.geometry.coordinates, info)
+            if(fel.geometry.type == "LineString" && info.highway != "pedestrian" && info.highway != "footway" && info.highway != "path") this.addRoad(fel.geometry.coordinates, info)
           }
         }
 
@@ -444,14 +464,14 @@ export default {
       })
 
       this.MAT_WATER = {
-        textureWidth: 1,
-        textureHeight: 1,
+        textureWidth: .5,
+        textureHeight: .5,
         waterNormals: this.MAT_WATER_NORMAL,
         alpha: 1.0,
         sunDirection: this.sun.position.clone().normalize(),
-        sunColor: 0xFFFFFF,
-        waterColor: 0x001E0F,
-        distortionScale: 4,
+        sunColor: 0xDDEBFF,
+        waterColor: 0xA6C8FA,
+        distortionScale: 2,
         fog: this.scene.fog !== undefined
       }
 
@@ -597,7 +617,7 @@ export default {
         let elp = [el[0], el[1]]
 
         //convert position from the center position
-        elp = ThreeBasic.GPSRelativePosition([elp[0], elp[1]], this.Center)
+        elp = ThreeBasic.GPSRelativePosition({lat: elp[1], lon: elp[0]}, this.Center)
         
         // Draw Line
         points.push( new THREE.Vector3( elp[0], 0.5, elp[1] ) )
@@ -629,7 +649,7 @@ export default {
       line.position = new THREE.Vector3(line.position.x, 0.5, line.position.z)
 
       // Calculate Real Position
-      let realPosi = ThreeBasic.GPSRelativePosition([d[parseInt(d.length / 2)][0], d[parseInt(d.length / 2)][1]], this.Center)
+      let realPosi = ThreeBasic.GPSRelativePosition({lat: d[parseInt(d.length / 2)][1], lon: d[parseInt(d.length / 2)][0]}, this.Center)
       line.realPosi = new THREE.Vector3(realPosi[0], line.position.y, realPosi[1])
 
       // Disable matrix auto update for performance

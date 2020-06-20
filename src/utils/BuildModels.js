@@ -122,12 +122,14 @@ function GenShape(points, center){
     // Create a shape object for create model after
     let shape = new THREE.Shape()
 
+    
+
     // Get deeper layer of point data
     for(let ii=0;ii<points.length;ii++){
         let elp = points[ii]
 
         //convert position from the center position
-        elp = ThreeBasic.GPSRelativePosition([elp[0], elp[1]], center)
+        elp = ThreeBasic.GPSRelativePosition({ lat: elp[1], lon: elp[0] }, center)
 
         // Draw shape
         if(ii == 0){
@@ -187,11 +189,11 @@ function GenLinePoints(data, center){
       let elp = [el[0], el[1]]
 
       //convert position from the center position
-      elp = ThreeBasic.GPSRelativePosition([elp[1], elp[0]], center)
+      elp = ThreeBasic.GPSRelativePosition({ lat: elp[1], lon: elp[0] }, center)
       console.log(elp)
       
       // Draw Line
-      points.push( new THREE.Vector3( elp[1], 0.1, elp[0] ) )
+      points.push( new THREE.Vector3( elp[0], 0.1, elp[1] ) )
     }
 
     return points

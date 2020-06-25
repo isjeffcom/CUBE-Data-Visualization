@@ -149,7 +149,15 @@ function GenHelper(geometry){
     }
 
     let box3 = geometry.boundingBox
+
+    if(!isFinite(box3.max.x)){
+        return false
+    }
+
     let helper = new THREE.Box3Helper( box3, 0xffff00 )
+    // Project new position
+    helper.updateMatrixWorld()
+
     return helper
 }
 

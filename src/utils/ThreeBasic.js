@@ -1,5 +1,5 @@
 const THREE = require('three')
-const GEOLIB = require('geolib')
+
 const Coordinate = require('./Coordinate')
 
 /**

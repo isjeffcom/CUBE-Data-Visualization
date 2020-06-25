@@ -19,6 +19,7 @@ import { Water } from 'three/examples/jsm/objects/Water'
 
 import ThreeBasic from '../../utils/ThreeBasic'
 import BuildModels from '../../utils/BuildModels'
+import Coordinate from '../../utils/Coordinate'
 import Request from '../../utils/Request'
 import { Vector3 } from 'three'
 
@@ -54,6 +55,7 @@ export default {
       renderer: null,
       camera: null,
       controls: null,
+      ground: null,
       raycaster: null,
       loadManager: null,
       sun: null, // a light object
@@ -65,12 +67,16 @@ export default {
       iR_Line: null,
       iR_Water: null,
 
+      // Terrain Data
+      terrianData: null,
+      terrianOffset: null,
+
       // Information Colliders
       Collider_Building: [],
 
       // Aniamted Line
-      Animated_Lines: [],
-      Animated_Line_Speed: 0.004,
+      //Animated_Lines: [],
+      Animated_Line_Speed: 0.005,
       Animated_Line_Distances: [],
 
       //Animated_Line_ASpeed: THREE.Math.degToRad(20),
@@ -101,6 +107,8 @@ export default {
   },
   mounted(){
     let that = this
+
+    console.log(Coordinate.MakeBBoxByNEWS(this.Center, 10000))
 
     this.Init()
     this.Update()
@@ -194,12 +202,12 @@ export default {
       }
 
       // Init Loading Models
-      this.LoadElements(this.conf_GeoJSON)
+      
       //this.LoadWaters(this.conf_GeoJSON_Water)
       this.LoadTerrain()
 
       // Init Ray Caster
-      this.raycaster = new THREE.Raycaster
+      this.raycaster = new THREE.Raycaster()
 
       // Init render
       // 初始化渲染
@@ -272,7 +280,7 @@ export default {
     addAnimatedLine(geometry, length){
       let animatedLine = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: 0x00FFFF }))
       animatedLine.material.transparent = true
-      animatedLine.position.y = 0.5
+      //animatedLine.position.y = 8
       animatedLine.material.dashSize = 0
       animatedLine.material.gapSize = 1000
 
@@ -311,13 +319,6 @@ export default {
       
       const rawTiff  = await GeoTIFF.fromUrl('./assets/geo/edinburgh_dem_ds.tif')
       const tifImage = await rawTiff.getImage()
-      // const image = {
-      //   width: tifImage.getWidth(),
-      //   height: tifImage.getHeight()
-      // }
-
-      // const start = ThreeBasic.EPSG3857meters2degress(-367250.317724, 7538522.125439)
-      // const end = ThreeBasic.EPSG3857meters2degress(-346663.619934, 7557378.475784)
 
       const start = {lat: 55.900416, lon: -3.302638}
       const end = {lat: 55.995138, lon: -3.128194}
@@ -325,24 +326,17 @@ export default {
       let leftBottom = ThreeBasic.GPSRelativePosition(start, this.Center)
       let rightTop = ThreeBasic.GPSRelativePosition(end, this.Center)
 
+      // Get center from images
       let center = getCenter([
         { latitude: 55.900416, longitude: -3.302638 },
         { latitude: 55.995138, longitude: -3.128194 }
       ])
       //console.log(center, this.Center)
       
+      // Offset from center position
       let offset = ThreeBasic.GPSRelativePosition({ lat: center.latitude, lon: center.longitude}, this.Center)
-      console.log(offset)
       let x = Math.abs(leftBottom[0] - rightTop[0])
       let y = Math.abs(leftBottom[1] - rightTop[1])
-
-
-      //console.log(x/y)
-
-      //console.log(Math.abs(leftTop[0] - rightBottom[0]), x)
-
-
-      //console.log(leftTop)
 
       // Our initial plane geometry
       // const geometry = new THREE.PlaneGeometry(
@@ -363,29 +357,31 @@ export default {
 
       // Read image pixel values that each pixel corresponding a height
       const data = await tifImage.readRasters({ width: Math.round(x), height: Math.round(y), resampleMethod: 'bilinear', interleave: true })
-      
+
       // Fill z values of the geometry
+
       console.time("parseGeom")
       for(let i=0;i<data.length;i++){
         let el = data[i]
-        // if(i % 16 == 0) {
-        //   //console.log(geometry.vertices[c], c)
-          
-        // }
 
         if(geometry.vertices[i]){
           geometry.vertices[i].z = (el/20)
         } 
       }
-      // geometry.vertices.forEach((geom, index) => {
-      //   //console.log(data[index])
-      //   geom.z = (data[index] / 10) * -1
-      // })
-      console.timeEnd("parseGeom")
 
+      
+
+      geometry.verticesNeedUpdate = true
+      console.timeEnd("parseGeom")
+      // Rotate
       geometry.rotateX(Math.PI / 2)
       geometry.rotateY(Math.PI)
       geometry.rotateZ(Math.PI)
+
+      geometry.translate(-offset[0], 0, offset[1])
+      //console.log(geometry.vertices[0])
+      
+      //console.log(geometry.vertices)
 
       let texture = new THREE.TextureLoader().load("./assets/textures/terrain.jpg", (onload)=>{
         console.log(onload)
@@ -393,17 +389,41 @@ export default {
         console.log(err)
       })
 
-      let plane = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({color: 0xffffff, side: THREE.DoubleSide, wireframe: true}) )
-      //plane.scale.set(1,-1,1)
-      //plane.scale.set(.5, .5, .5)
+      // Create a plane mesh
+      let plane = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({color: 0x434523, side: THREE.DoubleSide, wireframe: true}) )
       
-      this.scene.add(plane)
-      plane.position.x = plane.position.x + (-offset[0])
-      plane.position.z = plane.position.z + offset[1]
+
+      // Add to global Var
+      this.ground = plane
+
+      // FIX OFFSET, REVIEW NEEDED 
+      //plane.position.x = plane.position.x + (-offset[0])
+      //plane.position.z = plane.position.z + offset[1]
       plane.position.y = -1
 
+      
+
+      this.scene.add(plane)
+
+      plane.updateMatrixWorld()
+      plane.updateMatrix()
+
+      //console.log(geometry.vertices[0])
+
+      this.terrianData = geometry
+      this.terrianOffset = offset
+
+      this.LoadElements(this.conf_GeoJSON)
 
     },
+
+    // ReMapBuildingHeight(heightData){
+    //   for(let i=0;i<this.iR_Building.length;i++){
+    //     let el = this.iR_Building[i]
+    //     //this.ShortEst(el.position, heightData)
+    //   }
+      
+    // },
 
     // Load all building by geojson, this part can connect to the remote source for tile data
     LoadElements(api){
@@ -452,6 +472,7 @@ export default {
         this.$nextTick(()=>{
           let mergeGeometry = BufferGeometryUtils.mergeBufferGeometries(that.geometries)
           let mesh = new THREE.Mesh(mergeGeometry, that.MAT_BUILDING)
+          mesh.position.y = -1
           that.scene.add(mesh)
         })
       })
@@ -569,7 +590,6 @@ export default {
         shape.holes.push(holes[h])
       }
       
-
       // Extrude Shape to Geometry
       geometry = BuildModels.GenBuildingGeometry(shape, {
           curveSegments: 2,  // curves
@@ -577,27 +597,62 @@ export default {
           depth: 0.05 * height, // Height
           bevelEnabled: false // Bevel (round corner)
       })
-      //let geometry = BuildModels.GenBuilding(el, this.Center, height)
-
+      
       // Adjust geometry rotation
       geometry.rotateX(Math.PI / 2)
       geometry.rotateZ(Math.PI)
+
+      //console.log(geometry)
+
+      let realPosi = ThreeBasic.GPSRelativePosition({ lat: d[0][0][1], lon: d[0][0][0] }, this.Center)
+
+      // WAIT FOR MERGE adjust height according to terrain data
+      // Rotate
+      var vector = new THREE.Vector3( realPosi[0], 0, realPosi[1] )
+      var axis = new THREE.Vector3( 0, 0, 1 )
+      var angle = Math.PI
+
+      vector.applyAxisAngle( axis, angle )
+
+      let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrianData.vertices)
+      //console.log(dem.y)
+      if(dem) {geometry.translate(0, dem.y, 0)}
+      
 
       // Push to array ready for merge
       this.geometries.push(geometry)
 
       // Add Helper for user interaction
       let helper = BuildModels.GenHelper(geometry)
+      if(helper){
+        // Attach info
+        helper.name = info["name"] ? info["name"] : "Building"
+        helper.infoType = "Building"
+        helper.info = info
 
-      // Attach info
-      helper.name = info["name"] ? info["name"] : "Building"
-      helper.infoType = "Building"
-      helper.info = info
+        //this.scene.add(helper)
 
-      //this.scene.add(helper)
+        this.Collider_Building.push(helper)
+      }
 
-      this.Collider_Building.push(helper)
+      
     },
+
+    ShortEst(target, arr){
+      let resDis = 100000 // Save distance
+      let res = false // default return
+      for(let i=0;i<arr.length;i++){ // loop all terrain data
+      
+        let dis = Math.sqrt(Math.pow((target.x - arr[i].x), 2) + Math.pow((target.z - arr[i].z), 2)) // get distance from target distance to terrain geometry data
+        if(dis <= resDis){ // if distance less than resDis
+          resDis = dis // save new distance
+          res = arr[i] // save terrain geometry data
+        }
+      }
+
+      return res
+    },
+    
 
     addRoad(d, info){
 
@@ -618,9 +673,23 @@ export default {
 
         //convert position from the center position
         elp = ThreeBasic.GPSRelativePosition({lat: elp[1], lon: elp[0]}, this.Center)
+
+         // WAIT FOR MERGE adjust height according to terrain data
+        // Rotate
+        var vector = new THREE.Vector3( elp[0], 0, elp[1] )
+        var axis = new THREE.Vector3( 0, 0, 1 )
+        var angle = Math.PI
+
+        vector.applyAxisAngle( axis, angle )
+
+        let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrianData.vertices)
+        
+        //console.log(dem.y)
+        let y
+        if(dem) {y = -dem.y} else {y = 0.5}
         
         // Draw Line
-        points.push( new THREE.Vector3( elp[0], 0.5, elp[1] ) )
+        points.push( new THREE.Vector3( elp[0], y + 1, elp[1] ) )
       }
 
       let geometry = new THREE.BufferGeometry().setFromPoints( points )
@@ -637,7 +706,7 @@ export default {
         let lineLength = geometry.attributes.lineDistance.array[ geometry.attributes.lineDistance.count - 1]
         if(lineLength > 0.8){
           let aniLine = this.addAnimatedLine(geometry, lineLength)
-          this.Animated_Lines.push(aniLine)
+          //this.Animated_Lines.push(aniLine)
           this.iR_Line.add(aniLine)
         }
         
@@ -646,11 +715,12 @@ export default {
 
       // Adjust position
       //let finalPosi = ThreeBasic.GPSRelativePosition([d[parseInt(d.length / 2)][1], d[parseInt(d.length / 2)][0]], this.Center)
-      line.position = new THREE.Vector3(line.position.x, 0.5, line.position.z)
+      line.position = new THREE.Vector3(line.position.x, 0, line.position.z)
 
       // Calculate Real Position
-      let realPosi = ThreeBasic.GPSRelativePosition({lat: d[parseInt(d.length / 2)][1], lon: d[parseInt(d.length / 2)][0]}, this.Center)
-      line.realPosi = new THREE.Vector3(realPosi[0], line.position.y, realPosi[1])
+      //let realPosi = ThreeBasic.GPSRelativePosition({lat: d[parseInt(d.length / 2)][1], lon: d[parseInt(d.length / 2)][0]}, this.Center)
+      //line.realPosi = new THREE.Vector3(realPosi[0], line.position.y, realPosi[1])
+
 
       // Disable matrix auto update for performance
       line.matrixAutoUpdate = false

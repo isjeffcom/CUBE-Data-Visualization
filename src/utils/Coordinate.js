@@ -1,10 +1,12 @@
+const GEOLIB = require('geolib')
+
 
 /**
  * Mercator projection WGS84 > X,Y
  * @param lat latitude
  * @param lon lontitude
- * @returns {{}}
- * @private
+ * @return {object} {x: x, y: y}
+ * @public
  */
 
 function GetXY(lat, lon) {//[114.32894, 30.585748]
@@ -17,21 +19,47 @@ function GetXY(lat, lon) {//[114.32894, 30.585748]
     // console.log("mercator",mercator)
     return mercator //[12727039.383734727, 3579066.6894065146]
 }
+
+
+
 /**
- * Mercator projection X,Y > WGS84
- * @param poi 墨卡托
- * @returns {{}}
- * @private
+ * Create a square by center and distance(-*-)
+ * @param {object} center {lat: latitude, lon: lontitude}
+ * @param {number} dis in meter
+ * @returns {object} four direction coordinate {east: east, south: south, west: west, north: north, }
+ * @public
  */
-function GetWGS84(poi){
-    var lnglat = {}
-    lnglat.lng = poi.x/20037508.34*180
-    var mmy = poi.y/20037508.34*180
-    lnglat.lat = 180/Math.PI*(2*Math.atan(Math.exp(mmy*Math.PI/180))-Math.PI/2)
-    return lnglat
+function MakeBBoxByNEWS(center, dis){
+    let res = {}
+    console.log(center)
+    res.east = GEOLIB.computeDestinationPoint(
+        { latitude: center.lat, longitude: center.lon },
+        dis,
+        90
+    )
+
+    res.west = GEOLIB.computeDestinationPoint(
+        { latitude: center.lat, longitude: center.lon },
+        dis,
+        180
+    )
+
+    res.north = GEOLIB.computeDestinationPoint(
+        { latitude: center.lat, longitude: center.lon },
+        dis,
+        0
+    )
+
+    res.south = GEOLIB.computeDestinationPoint(
+        { latitude: center.lat, longitude: center.lon },
+        dis,
+        270
+    )
+
+    return res
 }
 
 module.exports = {
     GetXY: GetXY,
-    GetWGS84: GetWGS84
+    MakeBBoxByNEWS: MakeBBoxByNEWS
 }

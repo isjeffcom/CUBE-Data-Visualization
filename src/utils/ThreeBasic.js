@@ -68,8 +68,8 @@ function GPSToVector3(lat,lon,radius=6371){
 
 // 2. 墨卡托投影计算法 性能消耗极高，精确
 function GPSRelativePosition(objPosi, centerPosi){
-    let obj = Coordinate.GetXY(objPosi.lat, objPosi.lon)
-    let center = Coordinate.GetXY(centerPosi.lat, centerPosi.lon)
+    let obj = Coordinate.GetXY(objPosi.latitude, objPosi.longitude)
+    let center = Coordinate.GetXY(centerPosi.latitude, centerPosi.longitude)
     //console.log([(centerPosi.x - objPosi.x)/100, (centerPosi.y - objPosi.y)/100])
     return [(center.x - obj.x)/100, (center.y - obj.y)/100]
 }

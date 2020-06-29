@@ -129,7 +129,7 @@ function GenShape(points, center){
         let elp = points[ii]
 
         //convert position from the center position
-        elp = ThreeBasic.GPSRelativePosition({ lat: elp[1], lon: elp[0] }, center)
+        elp = ThreeBasic.GPSRelativePosition({ latitude: elp[1], longitude: elp[0] }, center)
 
         // Draw shape
         if(ii == 0){
@@ -197,7 +197,7 @@ function GenLinePoints(data, center){
       let elp = [el[0], el[1]]
 
       //convert position from the center position
-      elp = ThreeBasic.GPSRelativePosition({ lat: elp[1], lon: elp[0] }, center)
+      elp = ThreeBasic.GPSRelativePosition({ latitude: elp[1], longitude: elp[0] }, center)
       console.log(elp)
       
       // Draw Line

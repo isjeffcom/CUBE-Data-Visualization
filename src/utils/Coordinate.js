@@ -20,6 +20,9 @@ function GetXY(lat, lon) {//[114.32894, 30.585748]
     return mercator //[12727039.383734727, 3579066.6894065146]
 }
 
+function GetDis(start, end){
+    return GEOLIB.getDistance(start, end)
+}
 
 
 /**
@@ -29,37 +32,40 @@ function GetXY(lat, lon) {//[114.32894, 30.585748]
  * @returns {object} four direction coordinate {east: east, south: south, west: west, north: north, }
  * @public
  */
-function MakeBBoxByNEWS(center, dis){
+function MakeBBox(center, dis){
     let res = {}
-    console.log(center)
+    //console.log(center)
     res.east = GEOLIB.computeDestinationPoint(
-        { latitude: center.lat, longitude: center.lon },
+        { latitude: center.latitude, longitude: center.longitude },
         dis,
         90
     )
 
     res.west = GEOLIB.computeDestinationPoint(
-        { latitude: center.lat, longitude: center.lon },
+        { latitude: center.latitude, longitude: center.longitude },
         dis,
-        180
+        270
     )
 
     res.north = GEOLIB.computeDestinationPoint(
-        { latitude: center.lat, longitude: center.lon },
+        { latitude: center.latitude, longitude: center.longitude },
         dis,
         0
     )
 
     res.south = GEOLIB.computeDestinationPoint(
-        { latitude: center.lat, longitude: center.lon },
+        { latitude: center.latitude, longitude: center.longitude },
         dis,
-        270
+        180
     )
 
     return res
 }
 
+
+
 module.exports = {
     GetXY: GetXY,
-    MakeBBoxByNEWS: MakeBBoxByNEWS
+    GetDis: GetDis,
+    MakeBBox: MakeBBox
 }

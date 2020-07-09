@@ -11,7 +11,7 @@ const GEOLIB = require('geolib')
 
 function GetXY(lat, lon) {//[114.32894, 30.585748]
     var mercator = {}
-    var earthRad = 6378137.0
+    var earthRad = 6378137
     // console.log("mercator-poi",poi)
     mercator.x = lon * Math.PI / 180 * earthRad
     var a = lat * Math.PI / 180

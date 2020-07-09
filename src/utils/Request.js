@@ -2,31 +2,38 @@
 
 const axios = require('axios')
 const qs = require('qs')
-const baseUrl = "/"
+const BASE_URL = "http://localhost:5000"
+
+function GetBase(){
+  return BASE_URL
+}
 
 function Get (api, param, noBase, callback) {
 
-    api = noBase ? api : baseUrl + api
-    
-    axios.get(contParam(api, param)).then((response) => {
+  let url = noBase ? api : BASE_URL + api
 
-        callback({status: true, data: response.data})
+  url = url + constParam(param)
 
-    }).catch((err) => {
-        
-        callback({status: false, error: err})
+  console.log(url)
+  
+  axios.get(url).then((response) => {
 
-    })
+      callback({status: true, data: response.data})
+
+  }).catch((err) => {
+      
+      callback({status: false, error: err})
+
+  })
 }
 
 function Post (api, data, noBase, callback){
 
 
-    api = noBase ? api : baseUrl + api
+    api = noBase ? api : BASE_URL + api
 
     const postData = qs.stringify(data)
 
-    //console.log(postData)
 
     axios.post(api, postData)
       .then(function (response) {
@@ -45,7 +52,7 @@ function Post (api, data, noBase, callback){
 }
 
 function PostJSON(api, data, noBase, callback){
-    api = noBase ? api : baseUrl + api
+    api = noBase ? api : BASE_URL + api
 
     const postData = JSON.stringify(data)
 
@@ -68,30 +75,33 @@ function PostJSON(api, data, noBase, callback){
 }
 
 // Construct url with paramaters
-function contParam (api, param) {
-    
-    // Assumble get url paramaters
-    if(param.length > 0){
-        api = api + "?"
-        
-        
-        for(var i=0;i<param.length;i++){
+function constParam(obj){
 
-            if(i == param.length - 1){
-                
-                api = api + param[i].name + "=" + param[i].val
-            } else {
-                api = api + param[i].name + "=" + param[i].val + "&"
-            } 
-        }    
-    }
+  let res = ""
+  let i = 0
+  let len = Object.keys(obj).length
 
-    return api
+  if(len == 0) return ""
+
+  for(let key in obj){
+      if(i == 0){
+          res += "?" + key + "=" + obj[key]
+      }
+      
+      else {
+          res += "&" + key + "=" + obj[key]
+      }
+
+      i++
+  }
+
+  return res
 }
 
 
 module.exports = {
     Get: Get,
     Post: Post,
-    PostJSON: PostJSON
+    PostJSON: PostJSON,
+    GetBase: GetBase
 }

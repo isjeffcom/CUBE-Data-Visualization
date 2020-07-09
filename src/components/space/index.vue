@@ -30,7 +30,15 @@ import * as GeoTIFF from "geotiff"
 export default {
   name: 'space',
   props: {
-    msg: String
+    // Config Address
+    //conf_Lights: {type: String, value: "./assets/config/lights.json"},
+    Center: {type: Object, value: ""},
+    GC_BUILDING: {type: String, value: ""},
+    GC_ROAD: {type: String, value: ""},
+    GC_WATER: {type: String, value: "."},
+    GC_TERRAIN: {type: String, value: ""},
+    BBOX_DEM: null,
+    BBOX_GEO: null,
   },
   data(){
     return{
@@ -39,7 +47,7 @@ export default {
       publicPath: process.env.BASE_URL,
 
       // Map
-      Center: { longitude: -3.188822, latitude: 55.943686 },
+      //Center: { longitude: -3.188822, latitude: 55.943686 },
 
       // Debug
       stats: null,
@@ -100,27 +108,26 @@ export default {
 
       // Config Address
       conf_Lights: "./assets/config/lights.json",
-      conf_GeoJSON_Building: "./assets/geo/test/building.geojson",
-      conf_GeoJSON_Road: "./assets/geo/test/highway.geojson",
-      conf_GeoJSON_Water: "./assets/geo/test/water.geojson",
-      conf_GeoJSON_Terrain: "./assets/geo/test/terrain.tif",
+      // GC_BUILDING: "./assets/geo/test/building.geojson",
+      // GC_ROAD: "./assets/geo/test/highway.geojson",
+      // GC_WATER: "./assets/geo/test/water.geojson",
+      // GC_TERRAIN: "./assets/geo/test/terrain.tif",
       // conf_GeoJSON: "./assets/geo/edinburgh_road.geojson",
-      // conf_GeoJSON_Water: "./assets/geo/edinburgh_water.geojson"
 
       // BBOX
-      BBOX_DIS_DEM: 5000,
-      BBOX_DIS_GEO: 1000,
-      BBOX_DEM: null,
-      BBOX_GEO: null,
+      // BBOX_DIS_DEM: 5000,
+      // BBOX_DIS_GEO: 1000,
+      
     }
   },
+  
   mounted(){
     let that = this
 
-    this.BBOX_DEM = Coordinate.MakeBBox(this.Center, this.BBOX_DIS_DEM)
+    //this.BBOX_DEM = Coordinate.MakeBBox(this.Center, this.BBOX_DIS_DEM)
     // console.log(dem_request_bbox)
 
-    this.BBOX_GEO = Coordinate.MakeBBox(this.Center, this.BBOX_DIS_GEO)
+    //this.BBOX_GEO = Coordinate.MakeBBox(this.Center, this.BBOX_DIS_GEO)
     // console.log(geo_request_bbox)
 
     this.Init()
@@ -216,8 +223,7 @@ export default {
 
       // Init Loading Models
       
-      //this.LoadWaters(this.conf_GeoJSON_Water)
-      this.LoadTerrain(this.conf_GeoJSON_Terrain)
+      //this.LoadWaters(this.GC_WATER)
 
       // Init Ray Caster
       this.raycaster = new THREE.Raycaster()
@@ -261,6 +267,9 @@ export default {
       // Init status monitor window
       this.stats = new Stats()
       cont.appendChild( this.stats.dom )
+
+      // Start
+      this.LoadTerrain(this.GC_TERRAIN)
       
 
     },
@@ -330,46 +339,23 @@ export default {
 
     async LoadTerrain(api){
       
-      const rawTiff  = await GeoTIFF.fromUrl("./assets/geo/test/terrain.tif")
+      const rawTiff  = await GeoTIFF.fromUrl(Request.GetBase() + api)
       const tifImage = await rawTiff.getImage()
-
-      // const start = {lat: 55.900416, longitude: -3.302638}
-      // const end = {lat: 55.995138, longitude: -3.128194}
 
       const start = {latitude: this.BBOX_DEM.south.latitude, longitude: this.BBOX_DEM.west.longitude}
       const end = {latitude: this.BBOX_DEM.north.latitude, longitude: this.BBOX_DEM.east.longitude}
 
-      console.log(start, end)
-
-      // Get center from images
-      // let center = getCenter([
-      //   { latitude: 55.900416, longitude: -3.302638 },
-      //   { latitude: 55.995138, longitude: -3.128194 }
-      // ])
-      //console.log(center, this.Center)
 
       let leftBottom = ThreeBasic.GPSRelativePosition(start, this.Center)
       let rightTop = ThreeBasic.GPSRelativePosition(end, this.Center)
       
       // Offset from center position
-      //let offset = ThreeBasic.GPSRelativePosition({ latitude: center.latitude, lon: center.longitude}, this.Center)
       let x = Math.abs(leftBottom[0] - rightTop[0])
       let y = Math.abs(leftBottom[1] - rightTop[1])
-
-      // const start = {latitude: this.BBOX_DEM.south.latitude, lon: this.BBOX_DEM.west.longitude}
-      // const end = {latitude: this.BBOX_DEM.north.latitude, lon: this.BBOX_DEM.east.longitude}
-
-      // let leftBottom = ThreeBasic.GPSRelativePosition(start, this.Center)
-      // let rightTop = ThreeBasic.GPSRelativePosition(end, this.Center)
-
-      // let x = Math.abs(leftBottom[0] - rightTop[0])
-      // let y = Math.abs(leftBottom[1] - rightTop[1])
-      console.log(Math.floor(x), Math.floor(y))
 
 
       // Initial plane geometry
       const geometry = new THREE.PlaneGeometry(
-        //this.GPSRelativePosition([])
         x,
         y,
         x - 1,
@@ -380,8 +366,6 @@ export default {
       const data = await tifImage.readRasters({ width: Math.floor(x), height: Math.floor(y), resampleMethod: 'bilinear', interleave: true })
 
       // Fill z values of the geometry
-
-      console.time("parseGeom")
       for(let i=0;i<data.length;i++){
         let el = data[i]
 
@@ -390,17 +374,13 @@ export default {
         } 
       }
 
-      geometry.verticesNeedUpdate = true
-      console.timeEnd("parseGeom")
+      //geometry.verticesNeedUpdate = true
+
       // Rotate
       geometry.rotateX(Math.PI / 2)
       geometry.rotateY(Math.PI)
       geometry.rotateZ(Math.PI)
 
-      //geometry.translate(-offset[0], 0, offset[1])
-      //console.log(geometry.vertices[0])
-      
-      //console.log(geometry.vertices)
 
       let texture = new THREE.TextureLoader().load("./assets/textures/terrain.jpg", (onload)=>{
         console.log(onload)
@@ -415,10 +395,7 @@ export default {
       // Add to global Var
       this.ground = plane
 
-      // FIX OFFSET, REVIEW NEEDED 
-      //plane.position.x = plane.position.x + (-offset[0])
-      //plane.position.z = plane.position.z + offset[1]
-      plane.position.y = -1
+      plane.position.y = -1.5
 
       
 
@@ -430,9 +407,10 @@ export default {
       //console.log(geometry.vertices[0])
 
       this.terrianData = geometry
+      console.log(this.OptiTerrainData(geometry.vertices))
       //this.terrianOffset = offset
-
-      this.LoadBuildings(this.conf_GeoJSON_Building)
+      
+      this.LoadBuildings(this.GC_BUILDING)
 
     },
 
@@ -449,9 +427,10 @@ export default {
       let that = this
       // Create MAT
       this.MAT_BUILDING = new THREE.MeshPhongMaterial({transparent: true, opacity: 0.95})
-
+      //console.log(api)
       // Get geo json data
-      Request.Get(api, [], false, (res)=>{
+      Request.Get(api, {}, false, (res)=>{
+        
         let features = res.data["features"]
         
         // Max building number
@@ -469,21 +448,12 @@ export default {
           if(!fel["properties"]) return
 
           let info = fel["properties"]
+          
           // Only render when geometry is Polygon
           if(info["tags"]["building"]){
             // Render building
             this.addBuilding(fel.geometry.coordinates, info, info["tags"]["building:levels"])
-            // if(info["addr:housename"]){
-            //   if( info["addr:housename"]== "Hugh Robson Building") this.addBuilding(fel.geometry.coordinates, info, info["building:levels"])
-              
-            // }
           }
-
-          // else if(info["highway"]){
-            
-          //   // Render Roads
-          //   if(fel.geometry.type == "LineString" && info.highway != "pedestrian" && info.highway != "footway" && info.highway != "path") this.addRoad(fel.geometry.coordinates, info)
-          // }
         }
 
         this.$nextTick(()=>{
@@ -492,7 +462,7 @@ export default {
           mesh.position.y = -1
           that.scene.add(mesh)
 
-          that.LoadRoads(this.conf_GeoJSON_Road)
+          //that.LoadRoads(this.GC_ROAD)
         })
       })
     },
@@ -505,7 +475,7 @@ export default {
       this.MAT_ANI_ROAD = new THREE.LineDashedMaterial({ color: 0xff9900 })
 
       // Get geo json data
-      Request.Get(api, [], false, (res)=>{
+      Request.Get(api, {}, false, (res)=>{
         let features = res.data["features"]
         
         // Max building number
@@ -556,7 +526,7 @@ export default {
 
       
 
-      Request.Get(api, [], false, (res)=>{
+      Request.Get(api, {}, false, (res)=>{
         let features = res.data.features
         
         for(let i=0;i<features.length;i++){
@@ -660,7 +630,6 @@ export default {
       geometry.rotateX(Math.PI / 2)
       geometry.rotateZ(Math.PI)
 
-      //console.log(geometry)
 
       let realPosi = ThreeBasic.GPSRelativePosition({ latitude: d[0][0][1], longitude: d[0][0][0] }, this.Center)
 
@@ -673,7 +642,7 @@ export default {
       vector.applyAxisAngle( axis, angle )
 
       let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrianData.vertices)
-      //console.log(dem.y)
+
       if(dem) {geometry.translate(0, dem.y, 0)}
       
 
@@ -696,9 +665,47 @@ export default {
       
     },
 
+    OptiTerrainData(terrain){
+      // Divided to 4 and calculate
+      let len = terrain.length
+      let split = Math.floor(len / 4)
+      console.log(len, len/4, split)
+
+      let terrain_new = []
+      let tmp = []
+      // Split array
+      for(let i=0;i<len;i++){
+
+        if(i == 0){
+          tmp.push(terrain[i])
+        }
+
+        else if(i%split != 0){
+          tmp.push(terrain[i])
+        } 
+        
+        else if(i%split == 0) {
+          tmp.push(terrain[i])
+          terrain_new.push(tmp)
+          tmp = []
+        }
+      }
+
+      if(tmp.length > 0 ){
+        for(let ii=0;ii<tmp.length;ii++){
+          terrain_new[terrain_new.length-1].push(tmp[ii])
+        }
+      }
+
+      return terrain_new
+    },
+
+    
+
     ShortEst(target, arr){
       let resDis = 100000 // Save distance
       let res = false // default return
+
       for(let i=0;i<arr.length;i++){ // loop all terrain data
       
         let dis = Math.sqrt(Math.pow((target.x - arr[i].x), 2) + Math.pow((target.z - arr[i].z), 2)) // get distance from target distance to terrain geometry data
@@ -792,7 +799,7 @@ export default {
 
       let that = this
 
-      Request.Get(api, [], false, (res)=>{
+      Request.Get(api, {}, true, (res)=>{
         let light
         
         let arr = res.data
@@ -820,7 +827,7 @@ export default {
 
     // Load all Models
     LoadModels(api, group){
-      Request.Get(api, [], false, (res)=>{
+      Request.Get(api, {}, false, (res)=>{
         
         res.data.forEach(el => {
           this.addModel(this.publicPath + el.obj, el.name, el.displayName, el.position, el.scale, group)

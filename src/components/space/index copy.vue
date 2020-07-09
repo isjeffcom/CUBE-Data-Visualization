@@ -13,13 +13,19 @@ import Stats from 'three/examples/jsm/libs/stats.module.js'
 //import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { MapControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { Water } from 'three/examples/jsm/objects/Water'
 
 //import ui from '../ui'
 
 import ThreeBasic from '../../utils/ThreeBasic'
 import BuildModels from '../../utils/BuildModels'
+import Coordinate from '../../utils/Coordinate'
 import Request from '../../utils/Request'
 import { Vector3 } from 'three'
+
+import { getCenter } from 'geolib'
+
+import * as GeoTIFF from "geotiff"
 
 export default {
   name: 'space',
@@ -33,10 +39,13 @@ export default {
       publicPath: process.env.BASE_URL,
 
       // Map
-      Center: [-3.188822, 55.943686],
+      Center: { longitude: -3.188822, latitude: 55.943686 },
 
       // Debug
       stats: null,
+
+      // Flags
+      FLAG_ROAD_ANI: true,
 
       // 3D Space
       clock: 0,
@@ -46,21 +55,32 @@ export default {
       renderer: null,
       camera: null,
       controls: null,
+      ground: null,
       raycaster: null,
       loadManager: null,
+      sun: null, // a light object
+
+      // 3D Groups
       iR: null,
       iR_Building: null,
       iR_Road: null,
       iR_Line: null,
+      iR_Water: null,
+
+      // Terrain Data
+      terrianData: null,
+      terrianOffset: null,
 
       // Information Colliders
       Collider_Building: [],
 
-      // Line Speed
-      Animated_Line_Speed: 0.1,
-      Animated_Line_ASpeed: THREE.Math.degToRad(20),
+      // Aniamted Line
+      //Animated_Lines: [],
+      Animated_Line_Speed: 0.005,
       Animated_Line_Distances: [],
 
+      //Animated_Line_ASpeed: THREE.Math.degToRad(20),
+      
       // Test
       geometries: [],
 
@@ -71,18 +91,37 @@ export default {
       // 3D Object
       MAT_BUILDING: null,
       MAT_ROAD: null,
+      MAT_ANI_ROAD: null,
+      MAT_WATER: null,
+      MAT_WATER_NORMAL: null,
 
       // Current UI Reactive Vars
       Selected: null,
 
       // Config Address
       conf_Lights: "./assets/config/lights.json",
-      cont_Models: "./assets/config/models.json",
-      conf_GeoJSON: "./assets/geo/edinburgh_road.geojson"
+      conf_GeoJSON_Building: "./assets/geo/test/building.geojson",
+      conf_GeoJSON_Road: "./assets/geo/test/highway.geojson",
+      conf_GeoJSON_Water: "./assets/geo/test/water.geojson",
+      conf_GeoJSON_Terrain: "./assets/geo/test/terrain.tif",
+      // conf_GeoJSON: "./assets/geo/edinburgh_road.geojson",
+      // conf_GeoJSON_Water: "./assets/geo/edinburgh_water.geojson"
+
+      // BBOX
+      BBOX_DIS_DEM: 5000,
+      BBOX_DIS_GEO: 1000,
+      BBOX_DEM: null,
+      BBOX_GEO: null,
     }
   },
   mounted(){
     let that = this
+
+    this.BBOX_DEM = Coordinate.MakeBBox(this.Center, this.BBOX_DIS_DEM)
+    // console.log(dem_request_bbox)
+
+    this.BBOX_GEO = Coordinate.MakeBBox(this.Center, this.BBOX_DIS_GEO)
+    // console.log(geo_request_bbox)
 
     this.Init()
     this.Update()
@@ -128,20 +167,21 @@ export default {
       this.clock = new THREE.Clock()
 
       // Init Camera
-      this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, 1, 100)
+      this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, 1, 200)
       this.camera.position.set( 8, 4, 0 );
       this.camera.name = "Main-Camera"
 
       // Init Scene
       this.scene = new THREE.Scene()
       this.scene.background = new THREE.Color( 0x222222 )
-      this.scene.fog = new THREE.Fog( 0x444444, 10, 60 )
+      this.scene.fog = new THREE.Fog( 0x444444, 10, 150 )
 
       // Init iR
       this.iR = ThreeBasic.AddGroup("iR", "Interactive-Root")
       this.iR_Building = ThreeBasic.AddGroup("IRB", "IR_Building")
       this.iR_Road = ThreeBasic.AddGroup("IRR", "IR_Road")
       this.iR_Line = ThreeBasic.AddGroup("IRL", "IR_Line")
+      this.iR_Water = ThreeBasic.AddGroup("IRW", "IR_Water")
       this.scene.add(this.iR)
 
       // Sprate building and roads root
@@ -149,14 +189,20 @@ export default {
         this.iR.add(this.iR_Building)
         this.iR.add(this.iR_Road)
         this.iR.add(this.iR_Line)
+        this.iR.add(this.iR_Water)
       })
+
+      let sun = new THREE.DirectionalLight( 0xffffff, 0.8 )
+      this.sun = sun
+      this.sun.position.set(0, 3, 0)
+			this.scene.add( this.sun )
 
       // Init Light
       this.LoadLights(this.conf_Lights)
 
       // Init Gird Helper
-      let gridHelper = new THREE.GridHelper( 60, 160, new THREE.Color( 0x555555 ), new THREE.Color( 0x333333 ) )
-      this.scene.add( gridHelper )
+      // let gridHelper = new THREE.GridHelper( 60, 160, new THREE.Color( 0x555555 ), new THREE.Color( 0x333333 ) )
+      // this.scene.add( gridHelper )
 
       // Init Models Loading Manager
       this.loadManager = new THREE.LoadingManager()
@@ -169,15 +215,18 @@ export default {
       }
 
       // Init Loading Models
-      this.LoadElements(this.conf_GeoJSON, this.scene)
+      
+      //this.LoadWaters(this.conf_GeoJSON_Water)
+      this.LoadTerrain(this.conf_GeoJSON_Terrain)
 
       // Init Ray Caster
-      this.raycaster = new THREE.Raycaster
+      this.raycaster = new THREE.Raycaster()
 
       // Init render
       // 初始化渲染
-      this.renderer = new THREE.WebGLRenderer({antialias: true, precision: "lowp", powerPreference: "low-power"})
-      this.renderer.shadowMap.enabled = false
+      this.renderer = new THREE.WebGLRenderer({antialias: true})
+      this.renderer.shadowMap.enabled = true
+			//this.renderer.outputEncoding = THREE.sRGBEncoding;
       //this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
       this.renderer.setPixelRatio( window.devicePixelRatio )
       this.renderer.setSize(window.innerWidth, window.innerHeight)
@@ -195,7 +244,7 @@ export default {
       this.controls.maxDistance = 800
 
       // Limit how much user can see by polar angle(vertical)
-      this.controls.maxPolarAngle = Math.PI / 2.4
+      //this.controls.maxPolarAngle = Math.PI / 2.4
       
       // Auto Rotate
       this.controls.autoRotate = false
@@ -213,7 +262,6 @@ export default {
       this.stats = new Stats()
       cont.appendChild( this.stats.dom )
       
-      this.TestAnimatedLine([[0,0], [20, 20]])
 
     },
 
@@ -234,62 +282,173 @@ export default {
       this.controls.update()
       this.UpdateDots(this.camera, this.allDots)
 
-      this.UpdateAnimatedLine()
+      this.UpdateAniLines()
+      //this.UpdateWater()
 
       this.stats.update()
       // Triangles faces count
       //console.log(this.renderer.info.render.triangles)
     },
 
-    TestAnimatedLine(data){
-      let mat = new THREE.LineDashedMaterial({ color: 0xff9900 })
+    addAnimatedLine(geometry, length){
+      let animatedLine = new THREE.Line(geometry, new THREE.LineDashedMaterial({ color: 0x00FFFF }))
+      animatedLine.material.transparent = true
+      //animatedLine.position.y = 8
+      animatedLine.material.dashSize = 0
+      animatedLine.material.gapSize = 1000
 
-      let points = []
-      points.push( new THREE.Vector3( data[0][0], 2, data[0][1] ) )
-      points.push( new THREE.Vector3( data[1][0], 2, data[1][1] ) )
-      
-      let geometry = new THREE.BufferGeometry().setFromPoints( points )
-      let line = new THREE.Line( geometry, mat )
+      this.Animated_Line_Distances.push(length)
 
-      line.computeLineDistances()
-
-      line.material.dashSize = 0
-      line.material.gapSize = 1000
-      line.scale.setScalar(0.1)
-      this.Animated_Line_Distances[0] = geometry.attributes.lineDistance.array[ geometry.attributes.lineDistance.count - 1]
-      this.iR_Line.add(line)
+      return animatedLine
 
     },
 
-    UpdateAnimatedLine(){
-      let arr = this.iR_Line.children
+    UpdateAniLines(){
+      // If no animated line than do nothing
+      if(this.iR_Line.children.length <= 0) return
 
-      for(let i=0;i<arr.length;i++){
-        let line = arr[i]
 
-        let dash 
+      for(let i=0;i<this.iR_Line.children.length;i++){
+        let line = this.iR_Line.children[i]
+
+        let dash = parseInt(line.material.dashSize)
         let length = parseInt(this.Animated_Line_Distances[i])
 
-        
-        
-        if (parseInt(line.material.dashSize) > length) {
-          console.log("b")
+
+        if (dash > length) {
+          //console.log("b")
           line.material.dashSize = 0
-          //line.material.gapSize -= this.Animated_Line_Speed
-          //line.material.gapSize = line.material.gapSize - 1
+          line.material.opacity = 1
         } else {
-          console.log("a")
+          //console.log("a")
           line.material.dashSize += this.Animated_Line_Speed
+          line.material.opacity = line.material.opacity > 0 ? line.material.opacity - 0.002 : 0
         }
       }
     },
 
+
+    async LoadTerrain(api){
+      
+      const rawTiff  = await GeoTIFF.fromUrl("./assets/geo/test/terrain.tif")
+      const tifImage = await rawTiff.getImage()
+
+      // const start = {lat: 55.900416, longitude: -3.302638}
+      // const end = {lat: 55.995138, longitude: -3.128194}
+
+      const start = {latitude: this.BBOX_DEM.south.latitude, longitude: this.BBOX_DEM.west.longitude}
+      const end = {latitude: this.BBOX_DEM.north.latitude, longitude: this.BBOX_DEM.east.longitude}
+
+      console.log(start, end)
+
+      // Get center from images
+      // let center = getCenter([
+      //   { latitude: 55.900416, longitude: -3.302638 },
+      //   { latitude: 55.995138, longitude: -3.128194 }
+      // ])
+      //console.log(center, this.Center)
+
+      let leftBottom = ThreeBasic.GPSRelativePosition(start, this.Center)
+      let rightTop = ThreeBasic.GPSRelativePosition(end, this.Center)
+      
+      // Offset from center position
+      //let offset = ThreeBasic.GPSRelativePosition({ latitude: center.latitude, lon: center.longitude}, this.Center)
+      let x = Math.abs(leftBottom[0] - rightTop[0])
+      let y = Math.abs(leftBottom[1] - rightTop[1])
+
+      // const start = {latitude: this.BBOX_DEM.south.latitude, lon: this.BBOX_DEM.west.longitude}
+      // const end = {latitude: this.BBOX_DEM.north.latitude, lon: this.BBOX_DEM.east.longitude}
+
+      // let leftBottom = ThreeBasic.GPSRelativePosition(start, this.Center)
+      // let rightTop = ThreeBasic.GPSRelativePosition(end, this.Center)
+
+      // let x = Math.abs(leftBottom[0] - rightTop[0])
+      // let y = Math.abs(leftBottom[1] - rightTop[1])
+      console.log(Math.floor(x), Math.floor(y))
+
+
+      // Initial plane geometry
+      const geometry = new THREE.PlaneGeometry(
+        //this.GPSRelativePosition([])
+        x,
+        y,
+        x - 1,
+        y - 1
+      )
+
+      // Read image pixel values that each pixel corresponding a height
+      const data = await tifImage.readRasters({ width: Math.floor(x), height: Math.floor(y), resampleMethod: 'bilinear', interleave: true })
+
+      // Fill z values of the geometry
+
+      console.time("parseGeom")
+      for(let i=0;i<data.length;i++){
+        let el = data[i]
+
+        if(geometry.vertices[i]){
+          geometry.vertices[i].z = (el/30)
+        } 
+      }
+
+      geometry.verticesNeedUpdate = true
+      console.timeEnd("parseGeom")
+      // Rotate
+      geometry.rotateX(Math.PI / 2)
+      geometry.rotateY(Math.PI)
+      geometry.rotateZ(Math.PI)
+
+      //geometry.translate(-offset[0], 0, offset[1])
+      //console.log(geometry.vertices[0])
+      
+      //console.log(geometry.vertices)
+
+      let texture = new THREE.TextureLoader().load("./assets/textures/terrain.jpg", (onload)=>{
+        console.log(onload)
+      }, null, (err)=>{
+        console.log(err)
+      })
+
+      // Create a plane mesh
+      let plane = new THREE.Mesh( geometry, new THREE.MeshPhongMaterial({color: 0x333333, side: THREE.DoubleSide, wireframe: true}) )
+      
+
+      // Add to global Var
+      this.ground = plane
+
+      // FIX OFFSET, REVIEW NEEDED 
+      //plane.position.x = plane.position.x + (-offset[0])
+      //plane.position.z = plane.position.z + offset[1]
+      plane.position.y = -1
+
+      
+
+      this.scene.add(plane)
+
+      plane.updateMatrixWorld()
+      plane.updateMatrix()
+
+      //console.log(geometry.vertices[0])
+
+      this.terrianData = geometry
+      //this.terrianOffset = offset
+
+      this.LoadBuildings(this.conf_GeoJSON_Building)
+
+    },
+
+    // ReMapBuildingHeight(heightData){
+    //   for(let i=0;i<this.iR_Building.length;i++){
+    //     let el = this.iR_Building[i]
+    //     //this.ShortEst(el.position, heightData)
+    //   }
+      
+    // },
+
     // Load all building by geojson, this part can connect to the remote source for tile data
-    LoadElements(api){
+    LoadBuildings(api){
       let that = this
       // Create MAT
-      this.MAT_BUILDING = new THREE.MeshPhongMaterial()
-      this.MAT_ROAD = new THREE.LineBasicMaterial( { color: 0x4F80FF } )
+      this.MAT_BUILDING = new THREE.MeshPhongMaterial({transparent: true, opacity: 0.95})
 
       // Get geo json data
       Request.Get(api, [], false, (res)=>{
@@ -311,24 +470,152 @@ export default {
 
           let info = fel["properties"]
           // Only render when geometry is Polygon
-          if(info["building"]){
+          if(info["tags"]["building"]){
             // Render building
-            this.addBuilding(fel.geometry.coordinates, info, info["building:levels"])
+            this.addBuilding(fel.geometry.coordinates, info, info["tags"]["building:levels"])
+            // if(info["addr:housename"]){
+            //   if( info["addr:housename"]== "Hugh Robson Building") this.addBuilding(fel.geometry.coordinates, info, info["building:levels"])
+              
+            // }
           }
 
-          else if(info["highway"]){
+          // else if(info["highway"]){
             
+          //   // Render Roads
+          //   if(fel.geometry.type == "LineString" && info.highway != "pedestrian" && info.highway != "footway" && info.highway != "path") this.addRoad(fel.geometry.coordinates, info)
+          // }
+        }
+
+        this.$nextTick(()=>{
+          let mergeGeometry = BufferGeometryUtils.mergeBufferGeometries(that.geometries)
+          let mesh = new THREE.Mesh(mergeGeometry, that.MAT_BUILDING)
+          mesh.position.y = -1
+          that.scene.add(mesh)
+
+          that.LoadRoads(this.conf_GeoJSON_Road)
+        })
+      })
+    },
+
+    LoadRoads(api){
+          
+      let that = this
+      // Create MAT
+      this.MAT_ROAD = new THREE.LineBasicMaterial( { color: 0x1B4686 } )
+      this.MAT_ANI_ROAD = new THREE.LineDashedMaterial({ color: 0xff9900 })
+
+      // Get geo json data
+      Request.Get(api, [], false, (res)=>{
+        let features = res.data["features"]
+        
+        // Max building number
+        let count = features.length
+        if(features.length > 1000){
+          //count = 1000
+        }
+
+        // Render all building
+        for(let i=0;i<count;i++){
+
+          let fel = features[i]
+
+          // Just in case properties value does not exist
+          if(!fel["properties"]) return
+
+          let info = fel["properties"]
+          // Only render when geometry is Polygon
+          if(info["tags"]["highway"]){
             // Render Roads
-            if(fel.geometry.type == "LineString" && info.highway != "pedestrian" && info.highway != "footway") this.addRoad(fel.geometry.coordinates, info)
+            if(fel.geometry.type == "LineString" && info.tags.highway != "pedestrian" && info.tags.highway != "footway" && info.tags.highway != "path"){
+              this.addRoad(fel.geometry.coordinates, info)
+            }
+            
           }
         }
 
-        // this.$nextTick(()=>{
-        //   let mergeGeometry = BufferGeometryUtils.mergeBufferGeometries(that.geometries)
-        //   let mesh = new THREE.Mesh(mergeGeometry, that.MAT_BUILDING)
-        //   that.scene.add(mesh)
-        // })
       })
+    },
+
+    LoadWaters(api){
+      
+      this.MAT_WATER_NORMAL = new THREE.TextureLoader().load( './assets/textures/waternormals.png', function ( texture ) {
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+      })
+
+      this.MAT_WATER = {
+        textureWidth: .5,
+        textureHeight: .5,
+        waterNormals: this.MAT_WATER_NORMAL,
+        alpha: 1.0,
+        sunDirection: this.sun.position.clone().normalize(),
+        sunColor: 0xDDEBFF,
+        waterColor: 0xA6C8FA,
+        distortionScale: 2,
+        fog: this.scene.fog !== undefined
+      }
+
+      
+
+      Request.Get(api, [], false, (res)=>{
+        let features = res.data.features
+        
+        for(let i=0;i<features.length;i++){
+          let fel = features[i]
+          if(!fel['properties']) return
+
+          if(fel.properties['tags']['natural'] == "water" && fel.geometry.type == "Polygon"){
+            this.addWater(fel.geometry.coordinates, fel.properties)
+          }
+        }
+      })
+    },
+
+    addWater(d, info){
+      let holes = []
+      let shape, geometry
+      
+      for(let i=0;i<d.length;i++){
+        let el = d[i]
+        if(i==0){
+          shape = BuildModels.GenShape(el, this.Center)
+        } else {
+          holes.push(BuildModels.GenShape(el, this.Center))
+        }
+      }
+
+      // Punch a hole
+      for(let h=0;h<holes.length;h++){
+        shape.holes.push(holes[h])
+      }
+
+      geometry = BuildModels.GenWaterGeometry(shape, {
+          curveSegments: 2,  // curves
+          steps: 1, // subdividing segments
+          depth: 0.01, // Height
+          bevelEnabled: false // Bevel (round corner)
+      })
+
+      //geometry.rotation.x = - Math.PI / 2;
+
+      // Adjust geometry rotation
+      geometry.rotateX(Math.PI / 2)
+      geometry.rotateZ(Math.PI)
+      
+      let water = new Water(geometry, this.MAT_WATER)
+
+      this.iR_Water.add(water)
+      
+      
+    },
+
+    UpdateWater(){
+      for(let i=0;i<this.iR_Water.children.length;i++){
+        
+        this.iR_Water.children[i].material.uniforms[ 'time' ].value += 1.0 / 700
+      }
+
+      //this.iR_Water.children[i0].material.uniforms[ 'time' ].value += 1.0 / 1000
+
     },
 
     // Render building by geojson->geometry->coordinates points data, a set 2-d array
@@ -336,36 +623,94 @@ export default {
 
       // default value for height
       if(!height) height = 1
+
+      let holes = []
+      let shape, geometry
       
       // Loop for all nodes
       for(let i=0;i<d.length;i++){
 
         let el = d[i]
+        
+        // Main
+        if(i == 0){
+          shape = BuildModels.GenShape(el, this.Center)
+        } 
+        
+        // Hole
+        else {
+          holes.push(BuildModels.GenShape(el, this.Center))
+        }
+      }
 
-        let geometry = BuildModels.GenBuilding(el, this.Center, height)
+      // Punch a hole
+      for(let h=0;h<holes.length;h++){
+        shape.holes.push(holes[h])
+      }
+      
+      // Extrude Shape to Geometry
+      geometry = BuildModels.GenBuildingGeometry(shape, {
+          curveSegments: 2,  // curves
+          steps: 1, // subdividing segments
+          depth: 0.05 * height, // Height
+          bevelEnabled: false // Bevel (round corner)
+      })
+      
+      // Adjust geometry rotation
+      geometry.rotateX(Math.PI / 2)
+      geometry.rotateZ(Math.PI)
 
-        // Adjust geometry rotation
-        geometry.rotateX(Math.PI / 2)
-        geometry.rotateZ(Math.PI)
+      //console.log(geometry)
 
-        // Push to array ready for merge
-        //this.geometries.push(geometry)
-        let mesh = new THREE.Mesh(geometry, this.MAT_BUILDING)
-        this.scene.add(mesh)
+      let realPosi = ThreeBasic.GPSRelativePosition({ latitude: d[0][0][1], longitude: d[0][0][0] }, this.Center)
 
-        // Add Helper for user interaction
-        let helper = BuildModels.GenHelper(geometry)
+      // WAIT FOR MERGE adjust height according to terrain data
+      // Rotate
+      var vector = new THREE.Vector3( realPosi[0], 0, realPosi[1] )
+      var axis = new THREE.Vector3( 0, 0, 1 )
+      var angle = Math.PI
 
+      vector.applyAxisAngle( axis, angle )
+
+      let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrianData.vertices)
+      //console.log(dem.y)
+      if(dem) {geometry.translate(0, dem.y, 0)}
+      
+
+      // Push to array ready for merge
+      this.geometries.push(geometry)
+
+      // Add Helper for user interaction
+      let helper = BuildModels.GenHelper(geometry)
+      if(helper){
         // Attach info
         helper.name = info["name"] ? info["name"] : "Building"
         helper.infoType = "Building"
         helper.info = info
 
-        this.Collider_Building.push(helper)
-        //this.scene.add( helper )
+        //this.scene.add(helper)
 
+        this.Collider_Building.push(helper)
       }
+
+      
     },
+
+    ShortEst(target, arr){
+      let resDis = 100000 // Save distance
+      let res = false // default return
+      for(let i=0;i<arr.length;i++){ // loop all terrain data
+      
+        let dis = Math.sqrt(Math.pow((target.x - arr[i].x), 2) + Math.pow((target.z - arr[i].z), 2)) // get distance from target distance to terrain geometry data
+        if(dis <= resDis){ // if distance less than resDis
+          resDis = dis // save new distance
+          res = arr[i] // save terrain geometry data
+        }
+      }
+
+      return res
+    },
+    
 
     addRoad(d, info){
 
@@ -385,10 +730,24 @@ export default {
         let elp = [el[0], el[1]]
 
         //convert position from the center position
-        elp = ThreeBasic.GPSRelativePosition([elp[0], elp[1]], this.Center)
+        elp = ThreeBasic.GPSRelativePosition({latitude: elp[1], longitude: elp[0]}, this.Center)
+
+         // WAIT FOR MERGE adjust height according to terrain data
+        // Rotate
+        var vector = new THREE.Vector3( elp[0], 0, elp[1] )
+        var axis = new THREE.Vector3( 0, 0, 1 )
+        var angle = Math.PI
+
+        vector.applyAxisAngle( axis, angle )
+
+        let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrianData.vertices)
+        
+        //console.log(dem.y)
+        let y
+        if(dem) {y = -dem.y} else {y = 0.5}
         
         // Draw Line
-        points.push( new THREE.Vector3( elp[0], 0.1, elp[1] ) )
+        points.push( new THREE.Vector3( elp[0], y + 1, elp[1] ) )
       }
 
       let geometry = new THREE.BufferGeometry().setFromPoints( points )
@@ -398,15 +757,28 @@ export default {
 
       let line = new THREE.Line( geometry, this.MAT_ROAD )
       line.info = info
+      line.computeLineDistances()
       this.iR_Road.add(line)
+
+      if(this.FLAG_ROAD_ANI){
+        let lineLength = geometry.attributes.lineDistance.array[ geometry.attributes.lineDistance.count - 1]
+        if(lineLength > 0.8){
+          let aniLine = this.addAnimatedLine(geometry, lineLength)
+          //this.Animated_Lines.push(aniLine)
+          this.iR_Line.add(aniLine)
+        }
+        
+      }
+      
 
       // Adjust position
       //let finalPosi = ThreeBasic.GPSRelativePosition([d[parseInt(d.length / 2)][1], d[parseInt(d.length / 2)][0]], this.Center)
-      line.position = new THREE.Vector3(line.position.x, 0.1, line.position.z)
+      line.position = new THREE.Vector3(line.position.x, 0, line.position.z)
 
       // Calculate Real Position
-      let realPosi = ThreeBasic.GPSRelativePosition([d[parseInt(d.length / 2)][0], d[parseInt(d.length / 2)][1]], this.Center)
-      line.realPosi = new THREE.Vector3(realPosi[0], line.position.y, realPosi[1])
+      //let realPosi = ThreeBasic.GPSRelativePosition({lat: d[parseInt(d.length / 2)][1], lon: d[parseInt(d.length / 2)][0]}, this.Center)
+      //line.realPosi = new THREE.Vector3(realPosi[0], line.position.y, realPosi[1])
+
 
       // Disable matrix auto update for performance
       line.matrixAutoUpdate = false
@@ -437,16 +809,6 @@ export default {
           }
 
           light.castShadow = false
-
-          /*if (el.shadow) {
-            // 改这个参数能缓解阴影制造的疙瘩点
-            //light.shadow.bias = 0
-            light.castShadow = true
-            light.shadow.mapSize.width = 512
-            light.shadow.mapSize.height = 512
-            light.shadow.camera.near = 0.5
-            light.shadow.camera.far = 500 
-          }*/
 
           light.name = el.name
           //console.log(light)

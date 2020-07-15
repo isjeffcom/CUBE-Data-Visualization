@@ -76,8 +76,7 @@ export default {
       iR_Water: null,
 
       // Terrain Data
-      terrianData: null,
-      terrianOffset: null,
+      terrainData: null,
 
       // Information Colliders
       Collider_Building: [],
@@ -123,12 +122,6 @@ export default {
   
   mounted(){
     let that = this
-
-    //this.BBOX_DEM = Coordinate.MakeBBox(this.Center, this.BBOX_DIS_DEM)
-    // console.log(dem_request_bbox)
-
-    //this.BBOX_GEO = Coordinate.MakeBBox(this.Center, this.BBOX_DIS_GEO)
-    // console.log(geo_request_bbox)
 
     this.Init()
     this.Update()
@@ -232,7 +225,7 @@ export default {
       // 初始化渲染
       this.renderer = new THREE.WebGLRenderer({antialias: true})
       this.renderer.shadowMap.enabled = true
-			//this.renderer.outputEncoding = THREE.sRGBEncoding;
+			//this.renderer.outputEncoding = THREE.sRGBEncoding
       //this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
       this.renderer.setPixelRatio( window.devicePixelRatio )
       this.renderer.setSize(window.innerWidth, window.innerHeight)
@@ -345,7 +338,6 @@ export default {
       const start = {latitude: this.BBOX_DEM.south.latitude, longitude: this.BBOX_DEM.west.longitude}
       const end = {latitude: this.BBOX_DEM.north.latitude, longitude: this.BBOX_DEM.east.longitude}
 
-
       let leftBottom = ThreeBasic.GPSRelativePosition(start, this.Center)
       let rightTop = ThreeBasic.GPSRelativePosition(end, this.Center)
       
@@ -397,8 +389,6 @@ export default {
 
       plane.position.y = -1.5
 
-      
-
       this.scene.add(plane)
 
       plane.updateMatrixWorld()
@@ -406,9 +396,8 @@ export default {
 
       //console.log(geometry.vertices[0])
 
-      this.terrianData = geometry
-      console.log(this.OptiTerrainData(geometry.vertices))
-      //this.terrianOffset = offset
+      this.terrainData = geometry
+      //console.log(this.OptiTerrainData(geometry.vertices))
       
       this.LoadBuildings(this.GC_BUILDING)
 
@@ -424,10 +413,12 @@ export default {
 
     // Load all building by geojson, this part can connect to the remote source for tile data
     LoadBuildings(api){
+
       let that = this
+
       // Create MAT
       this.MAT_BUILDING = new THREE.MeshPhongMaterial({transparent: true, opacity: 0.95})
-      //console.log(api)
+
       // Get geo json data
       Request.Get(api, {}, false, (res)=>{
         
@@ -641,7 +632,7 @@ export default {
 
       vector.applyAxisAngle( axis, angle )
 
-      let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrianData.vertices)
+      let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrainData.vertices)
 
       if(dem) {geometry.translate(0, dem.y, 0)}
       
@@ -747,7 +738,7 @@ export default {
 
         vector.applyAxisAngle( axis, angle )
 
-        let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrianData.vertices)
+        let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrainData.vertices)
         
         //console.log(dem.y)
         let y

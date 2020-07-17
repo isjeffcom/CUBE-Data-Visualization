@@ -1,5 +1,5 @@
 
-class WorldRelativePosition {
+class CoorinateCalculator {
     constructor(objPosi, centerPosi){
         let obj = Mercator(objPosi.latitude, objPosi.longitude)
         let center = Mercator(centerPosi.latitude, centerPosi.longitude)
@@ -21,4 +21,4 @@ function Mercator(lat, lon) {
 }
 
 
-export default WorldRelativePosition
+

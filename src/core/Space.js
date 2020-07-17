@@ -1,18 +1,24 @@
 import * as THREE from 'three'
 import { MapControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { DefaultConfig } from './default/scene.js'
+import { DefaultConfig } from './static/space.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import merge from 'deepmerge'
 
-export class Scene {
+/**
+ * @class Main constructor, provides main space runtime, allow limited config, insert animation engine and shader engine
+ * @param container DOM Element, DOM <div> element for render
+ * @param center GPSCoordinate(), Geolocation center
+ * @public
+ */
+
+export class Space {
     constructor(container, center, options){
 
-        // Merge or overwrite options 合并覆盖启动配置
+        // Merge or overwrite options 
         let DefaultOptions = DefaultConfig()
-        
         options = options ? merge(DefaultOptions, options) : DefaultOptions
-        console.log(options.controls.rotateSpeed)
-        // Map Center 地图中心
+
+        // Map Center 
         this.center = center
 
         // Init Clock
@@ -24,7 +30,6 @@ export class Scene {
         this.camera.name = options.camera.name ? options.camera.name : "Main-Camera"
 
         // Init Scene
-        // Init Scene 初始化场景
         this.scene = new THREE.Scene()
         this.scene.background = new THREE.Color( parseInt("0x" + options.background))
         if(options.fog.enabled){
@@ -38,27 +43,25 @@ export class Scene {
         this.raycaster = new THREE.Raycaster()
 
         // Init render
-        // 初始化渲染
         this.renderer = new THREE.WebGLRenderer({antialias: true})
         this.renderer.shadowMap.enabled = true
         this.renderer.setPixelRatio( window.devicePixelRatio )
         this.renderer.setSize(window.innerWidth, window.innerHeight)
 
         // Print render result to canvas container
-        // 将渲染内容打印到画布容器
         container.appendChild(this.renderer.domElement)
 
 
-        // Init Control 初始化控制器
+        // Init Control
         this.controls = new MapControls( this.camera, this.renderer.domElement )
 
-        this.controls.rotateSpeed = options.controls.rotateSpeed || 0.7 // 旋转速度
-        this.controls.enableDamping = options.controls.damping.enabled || true // 缓震
-        this.controls.dampingFactor = options.controls.damping.factor || .25 //缓震系数
-        this.controls.minDistance = options.controls.minDistance || 10 // 最近距离
-        this.controls.maxDistance = options.controls.maxDistance || 1000 // 最远距离
+        this.controls.rotateSpeed = options.controls.rotateSpeed || 0.7 
+        this.controls.enableDamping = options.controls.damping.enabled || true 
+        this.controls.dampingFactor = options.controls.damping.factor || .25
+        this.controls.minDistance = options.controls.minDistance || 10 
+        this.controls.maxDistance = options.controls.maxDistance || 1000 
         
-        // Auto Rotation 自动旋转
+        // Auto Rotation
         this.controls.autoRotate = options.controls.autoRotate.enabled || false 
         this.controls.autoRotateSpeed = options.controls.autoRotate.speed || 1
 
@@ -73,8 +76,6 @@ export class Scene {
             this.stats = new Stats()
             container.appendChild( this.stats.dom )
         }
-
-        window.addEventListener( 'resize', this.OnWindowResize(), false )
     }
 
     Runtime(){
@@ -171,11 +172,9 @@ export class Scene {
         
     }
 
-    OnWindowResize(){
+    WindowResize(){
         this.camera.aspect = window.innerWidth / window.innerHeight
         this.camera.updateProjectionMatrix()
         this.renderer.setSize( window.innerWidth, window.innerHeight )
     }
-
-    
 }

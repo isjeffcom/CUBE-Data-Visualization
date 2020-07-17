@@ -1,2 +1,2 @@
-export { Scene } from './Scene'
+export { Space } from './Space'
 export { Shapes } from './shapes/Shapes'

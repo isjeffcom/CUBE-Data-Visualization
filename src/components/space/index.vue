@@ -12,7 +12,6 @@ export default {
     name: "space",
     props: {
         // Config Address
-        //conf_Lights: {type: String, value: "./assets/config/lights.json"},
         Center: {type: Object, value: ""},
         GC_BUILDING: {type: String, value: ""},
         GC_ROAD: {type: String, value: ""},
@@ -29,13 +28,21 @@ export default {
     mounted(){
         this.Init()
         this.Update()
+
+        // Add event listener for window resize
+        window.addEventListener( 'resize', this.C.WindowResize(), false )
     },
     methods: {
         Init(){
             let container = document.getElementById('cont')
-            this.C = new CUBE.Scene(container, this.Center, {background: "fafafa"})
+            this.C = new CUBE.Space(container, this.Center, {background: "fafafa"})
 
             this.C.AddGroup("iR_Building")
+        },
+
+        AddModel(){
+            let cube = new CUBE.Shapes().Box()
+            this.C.Add(cube)
         },
 
         Update(){

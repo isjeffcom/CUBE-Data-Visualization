@@ -1,5 +1,6 @@
 export function DefaultConfig(){
   return {
+    "scale": 0.01,
     "background": "222222",
     "camera": {
         "name": "Main-Camera",

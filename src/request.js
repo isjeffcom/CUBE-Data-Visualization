@@ -5,8 +5,6 @@ export function get(api, param, noBase, callback){
 
     url = url + constParam(param)
 
-    console.log(url)
-
     fetch(url).then((res)=>{
         if(res.status == 200){
             if(isJsonString(res)){
@@ -24,6 +22,17 @@ export function get(api, param, noBase, callback){
     }).catch((err)=>{
         callback({status: false, data: null, msg: "Error: " + err})
     })
+}
+
+
+async function AsyncGet(api, param, noBase){
+
+    let url = noBase ? api : BASE_URL + api
+    url = url + constParam(param)
+
+    let data = await (await fetch(url)).json()
+
+    return data
 }
 
 

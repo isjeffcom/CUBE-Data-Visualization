@@ -27,6 +27,18 @@ function Get (api, param, noBase, callback) {
   })
 }
 
+async function AsyncGet(api, param={}, noBase=true){
+  console.log(api)
+  let url = noBase ? api : BASE_URL + api
+  
+  url = url + constParam(param)
+  
+
+  let data = await (await fetch(url)).json()
+
+  return data
+}
+
 function Post (api, data, noBase, callback){
 
 
@@ -103,5 +115,6 @@ module.exports = {
     Get: Get,
     Post: Post,
     PostJSON: PostJSON,
-    GetBase: GetBase
+    GetBase: GetBase,
+    AsyncGet: AsyncGet
 }

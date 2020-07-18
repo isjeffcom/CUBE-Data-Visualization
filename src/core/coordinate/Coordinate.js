@@ -1,4 +1,4 @@
-import { MAP_SCALE } from '../static/constants'
+
 
 /**
  * @class Main constructor, provides main space runtime, allow limited config, insert animation engine and shader engine
@@ -10,28 +10,33 @@ import { MAP_SCALE } from '../static/constants'
 
 export class Coordinate{
 
-    constructor(type, options, center) {
-        if(type == "gps"){
-            this.world = null
-            this.gps = new GPSCoordinate(options.latitude, options.longitude, options.altitude)
+    constructor(type, options) {
+        if(type == "GPS"){
+            this.world = {}
+            this.gps = new GPSCoordinate(options.latitude, options.longitude, options.altitude || 0)
         }
 
-        if(type == "world"){
-            this.gps = null
+        if(type == "World"){
+            this.gps = {}
             this.world = new WorldCoordinate(options.x, options.y, options.z)
         }
-        
-        this.center = center
+
+        // Obtain Global Config
+        this.center = window.CUBE_GLOBAL.CENTER
+        this.scale = window.CUBE_GLOBAL.MAP_SCALE
     }
 
-    computeWorldCoordinate(){
+    ComputeWorldCoordinate(){
         let obj = Mercator(this.gps.latitude, this.gps.longitude)
         let center = Mercator(this.center.latitude, this.center.longitude)
-    
-        this.world.x = (center.x - obj.x) * MAP_SCALE
-        this.world.z = (center.y - obj.y) * MAP_SCALE
-        this.world.y = this.gps.altitude * MAP_SCALE
+
+        this.world.x = (center.x - obj.x) * this.scale
+        this.world.z = (center.y - obj.y) * this.scale
+        this.world.y = this.gps.altitude * this.scale
+
+        return this
     }
+
 }
 
 /**
@@ -71,7 +76,7 @@ class WorldCoordinate{
 
 function Mercator(lat, lon) {
     var mercator = {}
-    var earthRad = 6378137
+    var earthRad = 6378.137
 
     mercator.x = lon * Math.PI / 180 * earthRad
     var a = lat * Math.PI / 180

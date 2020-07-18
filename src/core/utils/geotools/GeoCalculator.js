@@ -1,4 +1,4 @@
-import { WorldCoordinate } from '../../models/Coordinate'
+import { WorldCoordinate } from '../../coordinate/Coordinate'
 
 let defaultScale = 50000
 

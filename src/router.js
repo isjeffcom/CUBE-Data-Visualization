@@ -5,6 +5,7 @@ Vue.use(VueRouter)
 
 import home from './pages/home'
 import projects from './pages/projects'
+import coretest from './pages/coretest'
 //import bus from './pages/bus'
 
 
@@ -16,7 +17,7 @@ export default new VueRouter({
     // Home
     { path:'/', name:'default', redirect: projects },
     { path:'/home', name:'home', component: home },
-    //{ path:'/bus', name:'bus', component: bus },
+    { path:'/coretest', name:'coretest', component: coretest },
     { path:'/projects', name:'projects', component: projects },
   ]
 })

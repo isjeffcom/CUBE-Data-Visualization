@@ -1,11 +1,10 @@
 // Import
 import * as THREE from 'three'
-import { GPSRelativePosition } from './geotools/GeoCalculator'
+import { Coordinate } from '../coordinate/Coordinate'
 
-
-export function GenBuilding(coordinates, center, height){
+export function GenBuilding(coordinates, height){
     // // Create Shape
-    let shape = this.GenShape(coordinates, center)
+    let shape = this.GenShape(coordinates)
 
     // Extrude Shape to Geometry
     let geometry = this.GenBuildingGeometry(shape, {
@@ -30,7 +29,7 @@ export function GenBuildingGeometry(shape, extrudeSettings){
     return geometry
 }
 
-export function GenShape(points, center){
+export function GenShape(points){
     // Create a shape object for create model after
     let shape = new THREE.Shape()
 
@@ -39,13 +38,13 @@ export function GenShape(points, center){
         let elp = points[ii]
 
         //convert position from the center position
-        elp = GPSRelativePosition({ latitude: elp[1], longitude: elp[0] }, center)
+        let melp = new Coordinate("GPS", {latitude: elp[1], longitude: elp[0]}).ComputeWorldCoordinate()
 
         // Draw shape
         if(ii == 0){
-            shape.moveTo(elp.x, elp.y)
+            shape.moveTo(melp.world.x, melp.world.z)
         } else {
-            shape.lineTo(elp.x, elp.y)
+            shape.lineTo(melp.world.x, melp.world.z)
         }
     }
 
@@ -76,7 +75,7 @@ export function GenLine(data){
     return new THREE.BufferGeometry().setFromPoints( points )
 }
 
-export function GenLinePoints(data, center){
+export function GenLinePoints(data){
     // Init points array
     let points = []
 
@@ -93,10 +92,10 @@ export function GenLinePoints(data, center){
         let elp = [el[0], el[1]]
 
         //convert position from the center position
-        elp = GPSRelativePosition({ latitude: elp[1], longitude: elp[0] }, center)
+        elp = new Coordinate("GPS", {latitude: elp[1], longitude: elp[0]}).ComputeWorldCoordinate()
         
         // Draw Line
-        points.push( new THREE.Vector3( elp.x, 0.1, elp.y ) )
+        points.push( new THREE.Vector3( elp.world.x, 0.1, elp.world.z ) )
     }
 
     return points

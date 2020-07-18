@@ -1,13 +1,17 @@
 export function DefaultConfig(){
   return {
-    "scale": 0.01,
+    "scale": 1,
+    "center": {
+      "latitude": 52.460562, 
+      "longitude":-1.772472
+    },
     "background": "222222",
     "camera": {
         "name": "Main-Camera",
         "type": "Perspective",
         "container": "window",
         "near": 1,
-        "far": 200,
+        "far": 1000,
         "position": {"x": 0, "y": 0, "z": 0}
     },
     "renderer": {

@@ -6,7 +6,7 @@ import { MAP_SCALE } from '../static/constants'
  * @public
  * 
  * Notice: Be aware that the altitude is not the real altitude, it is the y value, but it can be in the future
- */
+*/
 
 export class Coordinate{
 
@@ -39,7 +39,7 @@ export class Coordinate{
  * @param {Number} latitude latitude
  * @param {Number} longitude longitude
  * @private
- */
+*/
 
 class GPSCoordinate{
     constructor(latitude, longitude, altitude) {
@@ -52,10 +52,11 @@ class GPSCoordinate{
 
 /**
  * @class World coordination
- * @param {Number} x latitude
- * @param {Number} y longitude
+ * @param {Number} x x-axis coordinate
+ * @param {Number} y y-axis coordinate
+ * @param {Number} z z-axis coordinate
  * @private
- */
+*/
 
 class WorldCoordinate{
     constructor(x, y, z){
@@ -68,6 +69,15 @@ class WorldCoordinate{
         // Reserved
     }
 }
+
+/**
+ * Mercator WGS84 EPSG4326 -> Mercator projection EPSG3857
+ * @param {Number} lat latitude
+ * @param {Number} lon longitude
+ * @return {Object} {x: Number, y: Number}
+ * @private
+ * @inner
+*/
 
 function Mercator(lat, lon) {
     var mercator = {}

@@ -1,25 +1,32 @@
 import * as THREE from 'three'
 import { MapControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { DefaultConfig } from './static/space.js'
+import { DefaultConfig } from './static/Config.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import merge from 'deepmerge'
+import { Clone } from '../utils/Clone'
 
+// Global Config
+import './static/Global'
 /**
  * @class Main constructor, provides main space runtime, allow limited config, insert animation engine and shader engine
  * @param container DOM Element, DOM <div> element for render
  * @param center GPSCoordinate(), Geolocation center
  * @public
- */
+*/
 
 export class Space {
-    constructor(container, center, options){
+    constructor(container, opt){
+
+        // Update Global Config
+        window.CUBE_GLOBAL.CENTER = opt.center ? Clone(opt.center) : window.CUBE_GLOBAL.CENTER
+        window.CUBE_GLOBAL.MAP_SCALE = opt.scale ? opt.scale : window.CUBE_GLOBAL.MAP_SCALE
 
         // Merge or overwrite options 
         let DefaultOptions = DefaultConfig()
-        options = options ? merge(DefaultOptions, options) : DefaultOptions
+        let options = opt ? merge(DefaultOptions, opt) : DefaultOptions
 
         // Map Center 
-        this.center = center
+        this.center = options.center
 
         // Init Clock
         this.clock = new THREE.Clock()
@@ -54,7 +61,6 @@ export class Space {
 
         // Init Control
         this.controls = new MapControls( this.camera, this.renderer.domElement )
-
         this.controls.rotateSpeed = options.controls.rotateSpeed || 0.7 
         this.controls.enableDamping = options.controls.damping.enabled || true 
         this.controls.dampingFactor = options.controls.damping.factor || .25
@@ -118,9 +124,10 @@ export class Space {
 
     // Add a group 添加组
     AddGroup(name){
+        
         let group = new THREE.Group()
         group.name = name
-        this.scene.add(name)
+        this.scene.add(group)
         return group
     }
 
@@ -172,7 +179,7 @@ export class Space {
         
     }
 
-    WindowResize(){
+    WindowResize(window){
         this.camera.aspect = window.innerWidth / window.innerHeight
         this.camera.updateProjectionMatrix()
         this.renderer.setSize( window.innerWidth, window.innerHeight )

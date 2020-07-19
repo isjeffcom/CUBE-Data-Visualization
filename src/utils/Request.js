@@ -34,7 +34,7 @@ async function AsyncGet(api, param={}, noBase=true){
   url = url + constParam(param)
   
 
-  let data = await (await fetch(url)).json()
+  let data = await fetch(url)
 
   return data
 }

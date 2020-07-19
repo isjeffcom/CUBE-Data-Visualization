@@ -1,13 +1,14 @@
 // Import
 import * as THREE from 'three'
 import { Coordinate } from '../coordinate/Coordinate'
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 export function GenBuilding(coordinates, height){
     // // Create Shape
     let shape = this.GenShape(coordinates)
 
     // Extrude Shape to Geometry
-    let geometry = this.GenBuildingGeometry(shape, {
+    let geometry = this.GenGeometry(shape, {
         curveSegments: 2,  // curves
         steps: 1, // subdividing segments
         depth: 0.05 * height, // Height
@@ -21,7 +22,7 @@ export function GenBuilding(coordinates, height){
 }
 
 // Render building by geojson->geometry->coordinates points data, a set 2-d array
-export function GenBuildingGeometry(shape, extrudeSettings){
+export function GenGeometry(shape, extrudeSettings){
 
     let geometry = new THREE.ExtrudeBufferGeometry( shape, extrudeSettings )
     geometry.computeBoundingBox()
@@ -29,7 +30,7 @@ export function GenBuildingGeometry(shape, extrudeSettings){
     return geometry
 }
 
-export function GenShape(points){
+export function GenShape(points, options){
     // Create a shape object for create model after
     let shape = new THREE.Shape()
 
@@ -107,4 +108,8 @@ export function GenWaterGeometry(shape, config){
 
     return geometry
     //return new THREE.PlaneBufferGeometry(shape)
+}
+
+export function MergeGeometry(geometries){
+    return BufferGeometryUtils.mergeBufferGeometries(geometries)
 }

@@ -1,6 +1,7 @@
 var GLOBAL = {
     MAP_SCALE: 1,
-    CENTER: {}
+    CENTER: {},
+    BBOX: {}
 }
 
 window.CUBE_GLOBAL = GLOBAL

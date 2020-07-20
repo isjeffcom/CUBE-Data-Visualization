@@ -67,12 +67,20 @@ export default {
             let buildings = new CUBE.GeoJsonLayer(ed, "edinburgh_building").Buildings({merge: true})
             this.C.Add(buildings)
 
-            let edt = await Request.AsyncGet('./assets/geo/project/terrain.tif')
-            edt = await edt.arrayBuffer()
-            let terrain = await new CUBE.Terrain(edt, "edinburgh_terrain", this.dem_bbox).GeoTiff()
-            this.C.Add(terrain)
+            let arr = [
+                {name: "a", location: { latitude: 55.953335, longitude: -3.189127 }},
+                {name: "b", location: { latitude: 55.954579, longitude: -3.187315 }},
+                {name: "c", location: { latitude: 55.956385, longitude: -3.186543 }}
+            ]
 
-            console.log(terrain)
+            let cloud = new CUBE.Datasets("cloud", arr).PointCloud()
+            this.C.Add(cloud)
+
+            // let edt = await Request.AsyncGet('./assets/geo/project/terrain.tif')
+            // edt = await edt.arrayBuffer()
+            // let terrain = await new CUBE.Terrain(edt, "edinburgh_terrain", this.dem_bbox).GeoTiff()
+            // this.C.Add(terrain)
+
         },
 
         AddModel(){

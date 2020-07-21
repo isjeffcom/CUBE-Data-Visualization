@@ -32,7 +32,7 @@ export class Coordinate{
 
         this.world.x = (center.x - obj.x) * this.scale
         this.world.z = (center.y - obj.y) * this.scale
-        this.world.y = this.gps.altitude * this.scale
+        this.world.y = this.gps.altitude
 
         return this
     }

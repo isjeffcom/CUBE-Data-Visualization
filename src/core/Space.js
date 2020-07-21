@@ -97,14 +97,6 @@ export class Space {
         this.stats.update()
     }
 
-    GetAniEngine(){
-        return this.AniEngine
-    }
-
-    SetAniEngine(aniEngine){
-        this.AniEngine = aniEngine
-    }
-
     // Add and 3D Object to a group 添加一个3D物体进入场景
     Add(object3D, group){
 
@@ -152,6 +144,22 @@ export class Space {
 
     GetScene(){
         return this.scene
+    }
+
+    GetAniEngine(){
+        return this.AniEngine
+    }
+
+    SetAniEngine(aniEngine){
+        this.AniEngine = aniEngine
+    }
+
+    GetShaderEngine(){
+        return this.ShaderEngine
+    }
+
+    SetShaderEngine(shaderEngine){
+        this.ShaderEngine = shaderEngine
     }
 
     // Init lights 初始化灯光

@@ -1,9 +1,9 @@
 import TWEEN from '@tweenjs/tween.js'
 
-export default class AnimationEngine{
+export class AnimationEngine{
 
-    constructor(penrose){
-        this.penrose = penrose
+    constructor(ins){
+        this.ins = ins
         this.allTween = []
         this.allCircular = []
     }
@@ -11,12 +11,12 @@ export default class AnimationEngine{
     Register(animation){
         if(animation.type == "tween"){
             this.allTween.push(animation)
-            this.penrose.Add(animation.object)
+            this.ins.Add(animation.object)
         }
 
         if(animation.type == "autoRotate"){
             this.allCircular.push(animation)
-            this.penrose.Add(animation.object)
+            this.ins.Add(animation.object)
         }
     }
 
@@ -24,6 +24,7 @@ export default class AnimationEngine{
         if(this.allCircular.length > 0){
 
             this.allCircular.forEach(ani => {
+
                 ani.angle += 0.005
     
                 let x = 3 * Math.sin(ani.angle)
@@ -35,9 +36,9 @@ export default class AnimationEngine{
         }
 
         if(this.allTween.length > 0){
-            this.allTween.forEach(ani => {
-                ani.tweens[0].start()
-            })
+            // this.allTween.forEach(ani => {
+            //     ani.tweens[0].start()
+            // })
     
             TWEEN.update()
         }

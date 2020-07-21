@@ -1,14 +1,15 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
-let GLTF = new GLTFLoader()
 
-export default class Model{
+
+export class Model{
 
     constructor(coordinate){
         // If no world coordinate than computed
         if(!coordinate.world) coordinate.computeWorldCoordinate()
         this.position = new THREE.Vector3(coordinate.world.x, coordinate.world.y, coordinate.world.z)
+        this.object = null
     }
 
     Update(position){
@@ -18,11 +19,12 @@ export default class Model{
     LoadGLTF(url, name, displayName, scale){
         
         return new Promise((resolve, reject) => {
-            
+
+            let GLTF = new GLTFLoader()
+
             GLTF.load(url, obj => {
                 let object = obj.scene.children[0]
-                object.position.set(this.position.x, 0, this.position.z)
-
+                object.position.set(this.position.x, this.position.y, this.position.z)
             
                 object.name = name
                 object.displayName = displayName
@@ -33,9 +35,24 @@ export default class Model{
                     object.scale.z = scale
                 }
 
-                resolve(object)
+                this.object = object
+
+                resolve(this.object)
 
             }, null, reject)
           })
     }
+
+    Attach(obj){
+        if(Array.isArray(obj)){
+            for(let i=0;i<obj.length;i++){
+                this.object.add(obj[i])
+            }
+        } else {
+            this.object.add(obj)
+        }
+
+        return this.object
+    }
+
 }

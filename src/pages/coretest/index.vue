@@ -7,6 +7,7 @@
 <script>
 
 import * as CUBE from '../../core/Main'
+import * as THREE from 'three'
 import Request from '../../utils/Request'
 //import { Coordinate } from '../../core/coordinate/Coordinate'
 
@@ -21,24 +22,13 @@ export default {
             C: null,
             //Center: { latitude: 34.654818, longitude: 103.673262 },
             Center: {latitude: 55.943686, longitude: -3.188822},
-            dem_bbox: {
-                "east": {
-                    "latitude": 55.943659895856825,
-                    "longitude": -3.1085265344946214
-                },
-                "north": {
-                    "latitude": 55.98865208029593,
-                    "longitude": -3.1888220000000005
-                },
-                "south": {
-                    "latitude": 55.89871991970406,
-                    "longitude": -3.1888220000000005
-                },
-                "west": {
-                    "latitude": 55.943659895856825,
-                    "longitude": -3.2691174655053783
-                }
-            }
+            path: [
+                {latitude: 55.942867, longitude: -3.186062},
+                {latitude: 55.943104, longitude: -3.184601},
+                {latitude: 55.943556, longitude: -3.184923},
+                {latitude: 55.943879, longitude: -3.185246},
+                {latitude: 55.944342, longitude: -3.185880}
+            ]
         }
     },
     mounted(){
@@ -57,6 +47,12 @@ export default {
                 scale: 10
             })
 
+            let aniEngine = new CUBE.AnimationEngine(this.C)
+            this.C.SetAniEngine(aniEngine)
+
+            // let AnimationEngine = new CUBE.AnimationEngine(this.C)
+            // this.C.SetAniEngine(AnimationEngine)
+
             //this.C.Add(new CUBE.Shapes().Box())
 
             // this.C.AddGroup("England")
@@ -67,18 +63,37 @@ export default {
             let buildings = new CUBE.GeoJsonLayer(ed, "edinburgh_building").Buildings({merge: true})
             this.C.Add(buildings)
 
-            let arr = [
-                {name: "a", location: { latitude: 55.953335, longitude: -3.189127 }},
-                {name: "b", location: { latitude: 55.954579, longitude: -3.187315 }},
-                {name: "c", location: { latitude: 55.956385, longitude: -3.186543 }}
-            ]
+            let posi = new CUBE.Coordinate("World", {x: 0, y: 6, z: 2})
+            let m = new CUBE.Model(posi)
+            m.LoadGLTF('./assets/models/satellite/scene.gltf').then(()=>{
+                let light = new THREE.DirectionalLight(0xffffff, .7)
+                light.position.set(0, 1, 0)
 
-            let cloud = new CUBE.Datasets("cloud", arr).PointCloud()
-            this.C.Add(cloud)
+                m.Attach(light)
+
+                this.C.Add(m.object)
+
+                let mAni = new CUBE.Animation("test", m.object, "tween", {repeat: true}).GPSPath(this.path, 4000)
+                this.C.GetAniEngine().Register(mAni)
+            })
+
+
+            console.log(posi)
+
+            // let arr = [
+            //     {name: "a", location: { latitude: 55.953335, longitude: -3.189127 }},
+            //     {name: "b", location: { latitude: 55.954579, longitude: -3.187315 }},
+            //     {name: "c", location: { latitude: 55.956385, longitude: -3.186543 }}
+            // ]
+
+            // let cloud = new CUBE.Datasets("cloud", arr).PointCloud()
+            // this.C.Add(cloud)
+
+            
 
             // let edt = await Request.AsyncGet('./assets/geo/project/terrain.tif')
             // edt = await edt.arrayBuffer()
-            // let terrain = await new CUBE.Terrain(edt, "edinburgh_terrain", this.dem_bbox).GeoTiff()
+            // let terrain = await new CUBE.Terrain(edt, "edinburgh_terrain").GeoTiff()
             // this.C.Add(terrain)
 
         },

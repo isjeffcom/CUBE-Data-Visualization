@@ -28,6 +28,8 @@ export class Animation {
 
     GPSPath(paths, duration){
 
+        this.type == "tween"
+
         let altitude = this.object.position.y
 
         let all = new Vector3([], [], [])
@@ -53,8 +55,14 @@ export class Animation {
         return this
     }
 
+    Circular(){
+        this.type = "circular"
+        if(this.options.startNow) this.Play()
+        if(this.options.repeat) this.Loop()
+    }
+
     Play(){
-        this.tween.start()
+        if(this.tween) this.tween.start()
         this.state = 1
     }
 
@@ -67,7 +75,7 @@ export class Animation {
     }
 
     Loop(){
-        this.tween.repeat(Infinity)
+        if(this.tween) this.tween.repeat(Infinity)
         this.state = 99
     }
 }

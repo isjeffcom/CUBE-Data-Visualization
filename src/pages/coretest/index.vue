@@ -50,35 +50,37 @@ export default {
             let aniEngine = new CUBE.AnimationEngine(this.C)
             this.C.SetAniEngine(aniEngine)
 
-            // let AnimationEngine = new CUBE.AnimationEngine(this.C)
-            // this.C.SetAniEngine(AnimationEngine)
-
-            //this.C.Add(new CUBE.Shapes().Box())
+            this.C.Add(new CUBE.Shapes().Box())
 
             // this.C.AddGroup("England")
             // let england = await Request.AsyncGet('./assets/geo/china.geojson').json()
             // this.C.Add(new CUBE.GeoJsonLayer(england, "england").AdministrativeMap({border: true, height: 2}))
 
-            let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
-            let buildings = new CUBE.GeoJsonLayer(ed, "edinburgh_building").Buildings({merge: true})
-            this.C.Add(buildings)
+            // let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
+            // let buildings = new CUBE.GeoJsonLayer(ed, "edinburgh_building").Buildings({merge: true})
+            // this.C.Add(buildings)
 
-            let posi = new CUBE.Coordinate("World", {x: 0, y: 6, z: 2})
-            let m = new CUBE.Model(posi)
-            m.LoadGLTF('./assets/models/satellite/scene.gltf').then(()=>{
-                let light = new THREE.DirectionalLight(0xffffff, .7)
-                light.position.set(0, 1, 0)
+            // let posi = new CUBE.Coordinate("World", {x: 0, y: 6, z: 2})
+            // let m = new CUBE.Model(posi)
+            // m.LoadGLTF('./assets/models/satellite/scene.gltf').then(()=>{
+            //     let light = new THREE.DirectionalLight(0xffffff, .8)
+            //     light.position.set(0, 1, 0)
 
-                m.Attach(light)
+            //     m.Attach(light)
 
-                this.C.Add(m.object)
+            //     this.C.Add(m.object)
 
-                let mAni = new CUBE.Animation("test", m.object, "tween", {repeat: true}).GPSPath(this.path, 4000)
-                this.C.GetAniEngine().Register(mAni)
-            })
+            //     // let mAni = new CUBE.Animation("test", m.object, "tween", {repeat: true}).GPSPath(this.path, 4000)
+            //     // this.C.GetAniEngine().Register(mAni)
+
+            //     let mAni = new CUBE.Animation("test", m.object, "circular", {startNow: true, repeat: true})
+            //     this.C.GetAniEngine().Register(mAni)
+            // })
+
+            let map = new CUBE.BitmapLayer("main").TileMap()
+            this.C.Add(map)
 
 
-            console.log(posi)
 
             // let arr = [
             //     {name: "a", location: { latitude: 55.953335, longitude: -3.189127 }},

@@ -14,7 +14,7 @@ export class AnimationEngine{
             this.ins.Add(animation.object)
         }
 
-        if(animation.type == "autoRotate"){
+        if(animation.type == "circular"){
             this.allCircular.push(animation)
             this.ins.Add(animation.object)
         }
@@ -24,6 +24,8 @@ export class AnimationEngine{
         if(this.allCircular.length > 0){
 
             this.allCircular.forEach(ani => {
+
+                // if(ani.state != 1) return
 
                 ani.angle += 0.005
     
@@ -36,9 +38,6 @@ export class AnimationEngine{
         }
 
         if(this.allTween.length > 0){
-            // this.allTween.forEach(ani => {
-            //     ani.tweens[0].start()
-            // })
     
             TWEEN.update()
         }

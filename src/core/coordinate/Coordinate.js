@@ -21,6 +21,10 @@ export class Coordinate{
             this.world = new WorldCoordinate(options.x, options.y, options.z)
         }
 
+        this.tile = {}
+
+        this.type = type
+
         // Obtain Global Config
         this.center = window.CUBE_GLOBAL.CENTER
         this.scale = window.CUBE_GLOBAL.MAP_SCALE
@@ -33,6 +37,15 @@ export class Coordinate{
         this.world.x = (center.x - obj.x) * this.scale
         this.world.z = (center.y - obj.y) * this.scale
         this.world.y = this.gps.altitude
+
+        return this
+    }
+
+    ComputeTileCoordinate(zoom){
+        let t = GPSToTile(this.gps.latitude, this.gps.longitude, zoom)
+        console.log(t)
+        this.tile.x = t.x
+        this.tile.y = t.y
 
         return this
     }
@@ -96,4 +109,11 @@ function Mercator(lat, lon) {
 
 function MercatorReverse(x, y) {
     // Reserved
+}
+
+export function GPSToTile(lat, lon, zoom){
+    return {
+        x: (Math.floor((lon + 180) / 360 * Math.pow(2, zoom))),
+        y: (Math.floor((1 - Math.log( Math.tan( lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180) ) / Math.PI) / 2 * Math.pow(2,zoom)))
+    }
 }

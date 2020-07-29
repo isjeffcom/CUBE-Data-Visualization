@@ -41,25 +41,32 @@ export default {
     methods: {
         async Init(){
             let container = document.getElementById('cont')
+
+            // Init CUBE Instance
             this.C = new CUBE.Space(container, {
                 background: "333333", 
                 center: this.Center, 
                 scale: 10
             })
 
+            // Init Animation Engine
             let aniEngine = new CUBE.AnimationEngine(this.C)
             this.C.SetAniEngine(aniEngine)
 
+            // Add a basic box
             this.C.Add(new CUBE.Shapes().Box())
 
-            // this.C.AddGroup("England")
-            // let england = await Request.AsyncGet('./assets/geo/china.geojson').json()
-            // this.C.Add(new CUBE.GeoJsonLayer(england, "england").AdministrativeMap({border: true, height: 2}))
+            // Add Geojson Map Layer
+            // this.C.AddGroup("china")
+            // let china = await Request.AsyncGet('./assets/geo/china.geojson').json()
+            // this.C.Add(new CUBE.GeoJsonLayer(china, "china").AdministrativeMap({border: true, height: 2}))
 
+            // Add Geojson Building Layer
             // let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
             // let buildings = new CUBE.GeoJsonLayer(ed, "edinburgh_building").Buildings({merge: true})
             // this.C.Add(buildings)
 
+            // Load model, attach light and add animation
             // let posi = new CUBE.Coordinate("World", {x: 0, y: 6, z: 2})
             // let m = new CUBE.Model(posi)
             // m.LoadGLTF('./assets/models/satellite/scene.gltf').then(()=>{
@@ -77,11 +84,11 @@ export default {
             //     this.C.GetAniEngine().Register(mAni)
             // })
 
+            // Add Bitmap Image as ground
             let map = new CUBE.BitmapLayer("main").TileMap()
             this.C.Add(map)
 
-
-
+            // Point cloud layer
             // let arr = [
             //     {name: "a", location: { latitude: 55.953335, longitude: -3.189127 }},
             //     {name: "b", location: { latitude: 55.954579, longitude: -3.187315 }},
@@ -92,7 +99,7 @@ export default {
             // this.C.Add(cloud)
 
             
-
+            // Add terrain
             // let edt = await Request.AsyncGet('./assets/geo/project/terrain.tif')
             // edt = await edt.arrayBuffer()
             // let terrain = await new CUBE.Terrain(edt, "edinburgh_terrain").GeoTiff()

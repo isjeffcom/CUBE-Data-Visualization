@@ -5,16 +5,23 @@ import Stats from 'three/examples/jsm/libs/stats.module.js'
 import merge from 'deepmerge'
 import { Clone } from '../utils/Clone'
 
-// Global Config
+// Import
 import './static/Global'
+
 /**
- * @class Main constructor, provides main space runtime, allow limited config, insert animation engine and shader engine
- * @param container DOM Element, DOM <div> element for render
- * @param center GPSCoordinate(), Geolocation center
- * @public
+ * Create a space, main CUBE instance
+ * @class
 */
 
 export class Space {
+
+    /**
+     * Main constructor, provides main space runtime, allow limited config, insert animation engine and shader engine
+     * @param {document} container DOM Element, DOM <div> element for render
+     * @param {Object} opt to overwrite global config
+     * @public
+    */
+
     constructor(container, opt){
 
         // Update Global Config
@@ -84,6 +91,11 @@ export class Space {
         }
     }
 
+    /**
+     * Runtime rendering and controls/animation updates. Call it in requestAnimationFrame or setTimeout(()=>{}, gap)
+     * @public
+    */
+
     Runtime(){
         this.delta = this.clock.getDelta()
         this.time += this.delta
@@ -96,6 +108,13 @@ export class Space {
         
         this.stats.update()
     }
+
+    /**
+     * Add an 3d object into scene
+     * @param {THREE.Object3D} object3D Three.js Object3D object
+     * @param {THREE.Group} group Three.js Group Object
+     * @public
+    */
 
     // Add and 3D Object to a group 添加一个3D物体进入场景
     Add(object3D, group){
@@ -114,7 +133,12 @@ export class Space {
         return object3D
     }
 
-    // Add a group 添加组
+    /**
+     * Add a group to scene
+     * @param {String} name Group name
+     * @public
+    */
+
     AddGroup(name){
         
         let group = new THREE.Group()
@@ -122,6 +146,12 @@ export class Space {
         this.scene.add(group)
         return group
     }
+
+    /**
+     * Find a group in scene
+     * @param {String} name Group name you wish to search for
+     * @public
+    */
 
     // Find a group 找到组
     FindGroup(name){
@@ -138,29 +168,67 @@ export class Space {
         return res
     }
 
+    /**
+     * Getter to return current geo center
+     * @public
+    */
+
     GetCenter(){
         return this.center
     }
+
+    /**
+     * Getter to return current THREE.Scene
+     * @public
+    */
 
     GetScene(){
         return this.scene
     }
 
+    /**
+     * @class Getter to return current AnimationEngine
+     * @public
+    */
+
     GetAniEngine(){
         return this.AniEngine
     }
 
+    /**
+     * Set an AnimationEngine
+     * @public
+    */
+
     SetAniEngine(aniEngine){
+        if(this.AniEngine){ console.e("AnimationEngine has existed. You cannot add twice."); return }
         this.AniEngine = aniEngine
     }
+
+    /**
+     * Getter return the ShaderEngine
+     * @public
+    */
 
     GetShaderEngine(){
         return this.ShaderEngine
     }
 
+    /**
+     * Set an ShaderEngine
+     * @public
+    */
+
     SetShaderEngine(shaderEngine){
+        if(this.ShaderEngine){ console.e("ShaderEngine has existed. You cannot add twice."); return }
         this.ShaderEngine = shaderEngine
     }
+
+    /**
+     * Find a group in scene
+     * @param {Array} lights an array of type and THREE.Light objects. { "name": "front-left", "type": "Point", "color": "fafafa", "opacity": 0.4, "shadow": false,"position": {"x": 200, "y": 90, "z": 40}
+     * @public
+    */
 
     // Init lights 初始化灯光
     LoadLights(lights){
@@ -186,6 +254,11 @@ export class Space {
         })
         
     }
+
+    /**
+     * Call when window resize, put this into resize EventListener
+     * @public
+    */
 
     WindowResize(window){
         this.camera.aspect = window.innerWidth / window.innerHeight

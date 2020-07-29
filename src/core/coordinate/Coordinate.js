@@ -43,7 +43,6 @@ export class Coordinate{
 
     ComputeTileCoordinate(zoom){
         let t = GPSToTile(this.gps.latitude, this.gps.longitude, zoom)
-        console.log(t)
         this.tile.x = t.x
         this.tile.y = t.y
 

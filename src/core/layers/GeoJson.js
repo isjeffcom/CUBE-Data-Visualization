@@ -68,7 +68,7 @@ export class GeoJsonLayer{
                 if(fel.geometry.type == "MultiPolygon"){
                     coors = fel.geometry.coordinates
                 }
-
+                
                 for(let i=0;i<coors.length;i++){
 
                     let coor = coors[i]
@@ -184,7 +184,6 @@ function addBuilding(coordinates, info, height=1) {
     }
     
     geometry = GenGeometry(shape, {curveSegments: 1, depth: 0.05 * height, bevelEnabled: false})
-  
     geometry.rotateX(Math.PI / 2)
     geometry.rotateZ(Math.PI)
     

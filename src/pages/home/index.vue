@@ -59,11 +59,7 @@ export default {
                             this.BBOX_DEM = res.data['dem_bbox']
                             this.BBOX_GEO = res.data['geo_bbox']
                         }
-
-
-                        console.log(this.CONF_BUILDING, this.CONF_WATER, this.CONF_ROAD, this.CONF_TERRAIN)
                         
-
                         this.$nextTick(()=>{
                             that.loaded = true
                         })

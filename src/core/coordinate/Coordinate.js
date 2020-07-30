@@ -49,6 +49,11 @@ export class Coordinate{
         return this
     }
 
+    ReverseTileToGPS(zoom){
+        if(!this.tile.x) return
+        return TileToGPS(this.tile.x, this.tile.y, zoom)
+    }
+
 }
 
 /**
@@ -111,8 +116,19 @@ function MercatorReverse(x, y) {
 }
 
 export function GPSToTile(lat, lon, zoom){
+    let x = (lon + 180) / 360 * Math.pow(2, zoom)
+    let y = (1 - Math.log( Math.tan( lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180) ) / Math.PI) / 2 * Math.pow(2,zoom)
     return {
-        x: (Math.floor((lon + 180) / 360 * Math.pow(2, zoom))),
-        y: (Math.floor((1 - Math.log( Math.tan( lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180) ) / Math.PI) / 2 * Math.pow(2,zoom)))
+        x: (Math.floor(x)),
+        y: (Math.floor(y))
+    }
+}
+
+export function TileToGPS(x, y, zoom){
+    let n = Math.PI - 2 * Math.PI * y / Math.pow(2,zoom)
+    return{
+        latitude: (180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n)))),
+        longitude: (x/Math.pow(2,zoom)*360-180),
+        altitude: 0
     }
 }

@@ -39,7 +39,7 @@ export class Space {
         this.clock = new THREE.Clock()
 
         // Init Camera
-        this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, 1, 200)
+        this.camera = new THREE.PerspectiveCamera(25, window.clientWidth/window.clientHeight, options.camera.near, options.camera.far)
         this.camera.position.set( options.camera.position.x, options.camera.position.y, options.camera.position.z )
         this.camera.name = options.camera.name ? options.camera.name : "Main-Camera"
 

@@ -21,14 +21,16 @@ export default {
         return{
             C: null,
             //Center: { latitude: 34.654818, longitude: 103.673262 },
-            Center: {latitude: 55.943686, longitude: -3.188822},
-            path: [
-                {latitude: 55.942867, longitude: -3.186062},
-                {latitude: 55.943104, longitude: -3.184601},
-                {latitude: 55.943556, longitude: -3.184923},
-                {latitude: 55.943879, longitude: -3.185246},
-                {latitude: 55.944342, longitude: -3.185880}
-            ]
+            //Center: {latitude: 55.943686, longitude: -3.188822}, // EDI
+            //Center: {latitude: 40.709028, longitude: -73.956928}, // NYC
+            Center: {latitude: 41.157937, longitude: -8.629108} // porto
+            // path: [
+            //     {latitude: 55.942867, longitude: -3.186062},
+            //     {latitude: 55.943104, longitude: -3.184601},
+            //     {latitude: 55.943556, longitude: -3.184923},
+            //     {latitude: 55.943879, longitude: -3.185246},
+            //     {latitude: 55.944342, longitude: -3.185880}
+            // ]
         }
     },
     mounted(){
@@ -53,18 +55,49 @@ export default {
             let aniEngine = new CUBE.AnimationEngine(this.C)
             this.C.SetAniEngine(aniEngine)
 
+            //Add Geojson Building Layer
+            let ed = await (await Request.AsyncGet('./assets/geo/porto/building.geojson')).json()
+            let buildings = new CUBE.GeoJsonLayer(ed, "city_buildings").Buildings({merge: true})
+            this.C.Add(buildings)
+
+            // Taxi
+            let taxi = await Request.AsyncGet('./assets/geo/porto/taxi.json')
+            taxi = await taxi.json()
+            taxi.forEach((single, index) => {
+                if(index % 50 == 0){
+                    let path = JSON.parse(single["path"])
+                    if(path.length < 1) return
+                    let taxiSingle = new CUBE.Data().Sphere({latitude: path[0][0], longitude: path[0][1]}, 1, .03)
+                    this.C.Add(taxiSingle)
+                    
+                    let aniPath = []
+                    for(let ic=0;ic<path.length;ic++){
+                        let ics = path[ic]
+                        aniPath.push({latitude: ics[1], longitude: ics[0]}) // normally is 0 and 1, but it depended on data source
+                    }
+
+                    let mAni = new CUBE.Animation(single["id"], taxiSingle, "tween", {startNow: true, repeat: true}).GPSPath(aniPath, 100000)
+                    this.C.GetAniEngine().Register(mAni)
+                    
+                }
+            })
+
+
             // Add a basic box
-            this.C.Add(new CUBE.Shapes().Box())
+            //this.C.Add(new CUBE.Shapes().Box())
 
             // Add Geojson Map Layer
             // this.C.AddGroup("china")
             // let china = await Request.AsyncGet('./assets/geo/china.geojson').json()
             // this.C.Add(new CUBE.GeoJsonLayer(china, "china").AdministrativeMap({border: true, height: 2}))
 
-            // Add Geojson Building Layer
             // let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
-            // let buildings = new CUBE.GeoJsonLayer(ed, "edinburgh_building").Buildings({merge: true})
+            // let buildings = new CUBE.GeoJsonLayer(ed, "ed_buildings").Buildings({merge: true})
             // this.C.Add(buildings)
+
+            // Add Bitmap Image as ground
+            // let map = new CUBE.BitmapLayer("main").TileMap()
+            // this.C.Add(map)
 
             // Load model, attach light and add animation
             // let posi = new CUBE.Coordinate("World", {x: 0, y: 6, z: 2})
@@ -84,9 +117,8 @@ export default {
             //     this.C.GetAniEngine().Register(mAni)
             // })
 
-            // Add Bitmap Image as ground
-            let map = new CUBE.BitmapLayer("main").TileMap()
-            this.C.Add(map)
+            
+            
 
             // Point cloud layer
             // let arr = [

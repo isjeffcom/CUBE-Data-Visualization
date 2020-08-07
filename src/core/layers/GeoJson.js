@@ -155,6 +155,10 @@ export class GeoJsonLayer{
         return this.layer
     }
 
+    Road(){
+        
+    }
+
     Water(){
 
     }
@@ -164,7 +168,6 @@ export class GeoJsonLayer{
 function addBuilding(coordinates, info, height=1) {
 
     height = height ? height : 1
-    let scale = window.CUBE_GLOBAL.MAP_SCALE || 0.05
 
     let shape, geometry
     let holes = []
@@ -183,7 +186,7 @@ function addBuilding(coordinates, info, height=1) {
         shape.holes.push(holes[i])
     }
     
-    geometry = GenGeometry(shape, {curveSegments: 1, depth: 0.05 * height, bevelEnabled: false})
+    geometry = GenGeometry(shape, {curveSegments: 1, depth: 0.1 * height, bevelEnabled: false})
     geometry.rotateX(Math.PI / 2)
     geometry.rotateZ(Math.PI)
     
@@ -240,6 +243,81 @@ function addProvince(coordinates, info, height=1){
     }
 
     
+}
+
+function addRoad(d, info){
+
+    // Init points array
+    let points = []
+
+    // Loop for all nodes
+    for(let i=0;i<d.length;i++){
+        
+        if(!d[0][1]) return
+        
+        let el = d[i]
+
+        //Just in case
+        if(!el[0] || !el[1]) return
+        
+        let elp = [el[0], el[1]]
+
+        //convert position from the center position
+        elp = new Coordinate("GPS", {latitude: elp[1], longitude: elp[0]})
+        //elp = ThreeBasic.GPSRelativePosition({latitude: elp[1], longitude: elp[0]}, this.Center)
+
+        // WAIT FOR MERGE adjust height according to terrain data
+        // Rotate
+        var vector = new THREE.Vector3( elp.world.x, elp.world.y, elp.world.z )
+        var axis = new THREE.Vector3( 0, 0, 1 )
+        var angle = Math.PI
+
+        vector.applyAxisAngle( axis, angle )
+        
+        // // Fit Terrain
+        // let dem = this.ShortEst({x: vector.x, z: vector.z}, this.terrainData.vertices)
+        
+        // //console.log(dem.y)
+        // let y
+        // if(dem) {y = -dem.y} else {y = 0.5}
+        
+        // Draw Line
+        points.push( new THREE.Vector3( elp.world.x, elp.world.y + 1, elp.world.z ) )
+    }
+
+    let geometry = new THREE.BufferGeometry().setFromPoints( points )
+
+    // Adjust geometry rotation
+    geometry.rotateZ(Math.PI)
+
+    let line = new THREE.Line( geometry, this.MAT_ROAD )
+    line.info = info
+    line.computeLineDistances()
+
+    // if(this.FLAG_ROAD_ANI){
+    //   let lineLength = geometry.attributes.lineDistance.array[ geometry.attributes.lineDistance.count - 1]
+    //   if(lineLength > 0.8){
+    //     let aniLine = this.addAnimatedLine(geometry, lineLength)
+    //     //this.Animated_Lines.push(aniLine)
+    //     this.iR_Line.add(aniLine)
+    //   }
+    // }
+
+
+    // Adjust position
+    //let finalPosi = ThreeBasic.GPSRelativePosition([d[parseInt(d.length / 2)][1], d[parseInt(d.length / 2)][0]], this.Center)
+    line.position.set(line.position.x, 0, line.position.z)
+
+    // Calculate Real Position
+    //let realPosi = ThreeBasic.GPSRelativePosition({lat: d[parseInt(d.length / 2)][1], lon: d[parseInt(d.length / 2)][0]}, this.Center)
+    //line.realPosi = new THREE.Vector3(realPosi[0], line.position.y, realPosi[1])
+
+
+    // Disable matrix auto update for performance
+    line.matrixAutoUpdate = false
+    line.updateMatrix()
+
+    return line
 }
 
 function addBorder(coordinates, material, up){

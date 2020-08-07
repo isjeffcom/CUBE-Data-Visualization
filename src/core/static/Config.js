@@ -1,6 +1,6 @@
 export function DefaultConfig(){
   return {
-    "scale": 1,
+    "scale": 15,
     "center": {
       "latitude": 52.460562, 
       "longitude":-1.772472
@@ -11,7 +11,7 @@ export function DefaultConfig(){
         "type": "Perspective",
         "container": "window",
         "near": 1,
-        "far": 1000,
+        "far": 3000,
         "position": {"x": 0, "y": 0, "z": 0}
     },
     "renderer": {

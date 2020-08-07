@@ -21,7 +21,7 @@ export class Coordinate{
             this.world = new WorldCoordinate(options.x, options.y, options.z)
         }
 
-        this.tile = {}
+        this.tile = {x: 0, y:0, centerOffset: {x: 0, y: 0}}
 
         this.type = type
 
@@ -29,6 +29,11 @@ export class Coordinate{
         this.center = window.CUBE_GLOBAL.CENTER
         this.scale = window.CUBE_GLOBAL.MAP_SCALE
     }
+
+    /**
+     * Compute GPS/WGS84 Coordinate to Threejs World Postion Relatively to Center Coordinate
+     * @public
+    */
 
     ComputeWorldCoordinate(){
         let obj = Mercator(this.gps.latitude, this.gps.longitude)
@@ -41,13 +46,25 @@ export class Coordinate{
         return this
     }
 
+    /**
+     * Compute GPS/WGS84 coordinate to tile map coordinate
+     * @public
+    */
+
     ComputeTileCoordinate(zoom){
         let t = GPSToTile(this.gps.latitude, this.gps.longitude, zoom)
         this.tile.x = t.x
         this.tile.y = t.y
+        this.tile.centerOffset.x = t.offsetX
+        this.tile.centerOffset.y = t.offsetY
 
         return this
     }
+
+    /**
+     * Reverse tile coordinate back to gps coordinate for getting the center position
+     * @public
+    */
 
     ReverseTileToGPS(zoom){
         if(!this.tile.x) return
@@ -119,8 +136,10 @@ export function GPSToTile(lat, lon, zoom){
     let x = (lon + 180) / 360 * Math.pow(2, zoom)
     let y = (1 - Math.log( Math.tan( lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180) ) / Math.PI) / 2 * Math.pow(2,zoom)
     return {
-        x: (Math.floor(x)),
-        y: (Math.floor(y))
+        x: Math.floor(x),
+        y: Math.floor(y),
+        offsetX: Math.floor(x) - x,
+        offsetY: Math.floor(y) - y 
     }
 }
 

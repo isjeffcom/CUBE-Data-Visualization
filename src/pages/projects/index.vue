@@ -67,17 +67,17 @@
                     <l-tile-layer :url="preview_map_tile"></l-tile-layer>
 
                     <l-circle
-                    :lat-lng="preview_map_center"
-                    :radius="preview_map_geo_circle.radius"
-                    :color="preview_map_geo_circle.color"
-                    :fillColor="preview_map_geo_circle.fillColor"
+                        :lat-lng="preview_map_center"
+                        :radius="preview_map_geo_radius"
+                        :color="preview_map_geo_circle.color"
+                        :fillColor="preview_map_geo_circle.fillColor"
                     />
 
                     <l-circle
-                    :lat-lng="preview_map_center"
-                    :radius="preview_map_dem_circle.radius"
-                    :color="preview_map_dem_circle.color"
-                    :fillColor="preview_map_dem_circle.fillColor"
+                        :lat-lng="preview_map_center"
+                        :radius="preview_map_dem_radius"
+                        :color="preview_map_dem_circle.color"
+                        :fillColor="preview_map_dem_circle.fillColor"
                     />
 
                     <l-marker :lat-lng="preview_map_center" :icon="marker_icon()"></l-marker>
@@ -150,13 +150,13 @@ export default {
             preview_map_tile: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
             preview_map_zoom: 12,
             preview_map_center:[51.509539, -0.091988],
+            preview_map_dem_radius: 5000,
+            preview_map_geo_radius: 1000,
             preview_map_dem_circle: {
-                radius: 5000,
                 color: '#FFF852',
                 fillColor: 'rgba(159, 156, 69, 0.5)'
             },
             preview_map_geo_circle: {
-                radius: 1000,
                 color: '#127FFF',
                 fillColor: 'rgba(32, 172, 97, 0.5)'
             },
@@ -211,6 +211,9 @@ export default {
         toPreview(){
             this.preview_map_center = [this.inputForm.center.latitude, this.inputForm.center.longitude]
             this.preview_map_dem_circle.center = this.preview_map_center
+            this.preview_map_dem_radius = parseInt(this.inputForm.dem_dis)
+            this.preview_map_geo_radius = parseInt(this.inputForm.geo_dis)
+            console.log(this.preview_map_dem_radius)
             this.needUpdate = !this.needUpdate
         },
 

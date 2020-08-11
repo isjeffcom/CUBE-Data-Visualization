@@ -13,11 +13,15 @@ export default class CUBE_Material{
         return new THREE.MeshPhongMaterial(property)
     }
 
-    GeoMap(property={transparent: true, opacity: 0.95, color: 0x2E3342, specular: 0x383D51, reflectivity: 0.6 }){
+    Ground(property={transparent: false, opacity: 1, color: 0x141825, specular: 0x171B2C, reflectivity: 0 }){
         return new THREE.MeshPhongMaterial(property)
     }
 
-    GeoBuilding(property={transparent: true, opacity: 0.95}){
+    GeoMap(property={transparent: false, opacity: 1, color: 0x2E3342, specular: 0x383D51, reflectivity: 0.6 }){
+        return new THREE.MeshPhongMaterial(property)
+    }
+
+    GeoBuilding(property={color: 0x7884B2, specular: 0xfafafa, reflectivity: 0.6}){
         return new THREE.MeshPhongMaterial(property)
     }
 

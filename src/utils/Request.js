@@ -13,8 +13,6 @@ function Get (api, param, noBase, callback) {
   let url = noBase ? api : BASE_URL + api
 
   url = url + constParam(param)
-
-  console.log(url)
   
   axios.get(url).then((response) => {
 

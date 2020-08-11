@@ -3,13 +3,13 @@
     "name": "enviorment",
     "type": "Ambient",
     "color":"fafafa",
-    "opacity": 0.25
+    "opacity": 0.15
   },
   {
     "name": "front-left",
     "type": "Point",
     "color": "fafafa",
-    "opacity": 0.4,
+    "opacity": 0.1,
     "shadow": false,
     "position": {
       "x": 200,
@@ -21,7 +21,7 @@
     "name": "front-right",
     "type": "Point",
     "color": "fafafa",
-    "opacity": 0.4,
+    "opacity": 0.1,
     "shadow": false,
     "position": {
       "x": 200,
@@ -33,7 +33,7 @@
     "name": "back-left",
     "type": "Point",
     "color": "fafafa",
-    "opacity": 0.4,
+    "opacity": 0.5,
     "shadow": true,
     "position": {
       "x": -200,
@@ -45,7 +45,7 @@
     "name": "back-right",
     "type": "Point",
     "color": "fafafa",
-    "opacity": 0.4,
+    "opacity": 0.1,
     "shadow": false,
     "position": {
       "x": -200,

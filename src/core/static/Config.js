@@ -94,10 +94,10 @@ export function DefaultConfig(){
       }
     ],
     "fog":{
-        "enabled": false,
-        "color": "444444",
-        "near": 10,
-        "far": 200
+        "enabled": true,
+        "color": "262E4F",
+        "near": 50,
+        "far": 150
     },
     "debug": true
   }

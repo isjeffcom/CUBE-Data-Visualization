@@ -5,8 +5,7 @@ import CUBE_Material from '../materials/CUBE_Material'
 
 export class Terrain{
 
-    constructor(data, name){
-        this.data = data
+    constructor(name){
         // this.bbox = bbox ? bbox : window.CUBE_GLOBAL.bbox
 
         // if(!this.bbox){
@@ -21,8 +20,18 @@ export class Terrain{
         this.layer.name = name
     }
 
-    async GeoTiff(heightScale=30, overwrite){
-        const rawTiff  = await GeoTIFF.fromArrayBuffer(this.data)
+    Ground(sizeX=5, sizeY=20, segments=32){
+        let geometry = new THREE.PlaneBufferGeometry( sizeX, sizeY, segments )
+        geometry.rotateX(Math.PI / 2)
+        geometry.rotateZ(Math.PI)
+        let ground = new THREE.Mesh( geometry, new CUBE_Material().Ground() )
+        
+        this.layer.add(ground)
+        return this.layer
+    }
+
+    async GeoTiff(tiffData, heightScale=30, overwrite){
+        const rawTiff  = await GeoTIFF.fromArrayBuffer(tiffData)
         const tifImage = await rawTiff.getImage()
 
         let bbox = tifImage.getBoundingBox() // 0: west Longitude, 1: south latitude, 2: east longitude, 3: north latitude

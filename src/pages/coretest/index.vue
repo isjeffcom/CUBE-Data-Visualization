@@ -22,8 +22,8 @@ export default {
             C: null,
             //Center: { latitude: 34.654818, longitude: 103.673262 },
             //Center: {latitude: 55.943686, longitude: -3.188822}, // EDI
-            //Center: {latitude: 40.709028, longitude: -73.956928}, // NYC
-            Center: {latitude: 41.157937, longitude: -8.629108} // porto
+            Center: {latitude: 40.709028, longitude: -73.956928}, // NYC
+            //Center: {latitude: 41.157937, longitude: -8.629108} // porto
             // path: [
             //     {latitude: 55.942867, longitude: -3.186062},
             //     {latitude: 55.943104, longitude: -3.184601},
@@ -56,31 +56,69 @@ export default {
             this.C.SetAniEngine(aniEngine)
 
             //Add Geojson Building Layer
-            let ed = await (await Request.AsyncGet('./assets/geo/porto/building.geojson')).json()
+            let ed = await (await Request.AsyncGet('./assets/geo/nyc/building.geojson')).json()
             let buildings = new CUBE.GeoJsonLayer(ed, "city_buildings").Buildings({merge: true})
             this.C.Add(buildings)
 
-            // Taxi
-            let taxi = await Request.AsyncGet('./assets/geo/porto/taxi.json')
-            taxi = await taxi.json()
-            taxi.forEach((single, index) => {
-                if(index % 50 == 0){
-                    let path = JSON.parse(single["path"])
-                    if(path.length < 1) return
-                    let taxiSingle = new CUBE.Data().Sphere({latitude: path[0][0], longitude: path[0][1]}, 1, .03)
-                    this.C.Add(taxiSingle)
-                    
-                    let aniPath = []
-                    for(let ic=0;ic<path.length;ic++){
-                        let ics = path[ic]
-                        aniPath.push({latitude: ics[1], longitude: ics[0]}) // normally is 0 and 1, but it depended on data source
-                    }
+            // Add a ground
+            let ground = new CUBE.Terrain().Ground(800, 800, 8)
+            this.C.Add(ground)
+            ground.position.y = -2.4
 
-                    let mAni = new CUBE.Animation(single["id"], taxiSingle, "tween", {startNow: true, repeat: true}).GPSPath(aniPath, 100000)
-                    this.C.GetAniEngine().Register(mAni)
-                    
+            // NYC NAT MAP
+            this.C.AddGroup("nyc_nta")
+            let nyc = await (await Request.AsyncGet('./assets/geo/nyc/nta.geojson')).json()
+            let nyc_geo = new CUBE.GeoJsonLayer(nyc, "nyc").AdministrativeMap({border: true, height: 2})
+            this.C.Add(nyc_geo)
+            nyc_geo.position.y = -2.2
+
+            // NYC Taxi
+            let taxi = await Request.AsyncGet('./assets/geo/nyc/taxi.json')
+            taxi = await taxi.json()
+            for(let i=0;i<taxi.length;i++){
+                let adate = taxi[i]
+                if(adate["date"] == "2020-05-25"){
+                    for(let ii=0;ii<adate["routes"].length;ii++){
+                        let single = adate["routes"][ii]
+                        
+                        let path = single["path"]
+                        let taxiSingle = new CUBE.Data().Sphere({latitude: path[0][0], longitude: path[0][1]}, 1, .03, 0xFFB800)
+                        this.C.Add(taxiSingle)
+
+                        let aniPath = []
+                        for(let ic=0;ic<path.length;ic++){
+                            let ics = path[ic]
+                            aniPath.push({latitude: ics[1], longitude: ics[0]}) // normally is 0 and 1, but it depended on data source
+                        }
+
+                        let mAni = new CUBE.Animation(single["id"], taxiSingle, "tween", {startNow: true, repeat: true}).GPSPath(aniPath, 100000)
+                        this.C.GetAniEngine().Register(mAni)
+                    }
                 }
-            })
+                
+            }
+
+            // // porto Taxi
+            // let taxi = await Request.AsyncGet('./assets/geo/porto/taxi.json')
+            // taxi = await taxi.json()
+            // taxi.forEach((single, index) => {
+            //     if(index % 50 == 0){
+            //         let path = JSON.parse(single["path"])
+            //         if(path.length < 1) return
+            //         let taxiSingle = new CUBE.Data().Sphere({latitude: path[0][0], longitude: path[0][1]}, 1, .03)
+            //         this.C.Add(taxiSingle)
+                    
+            //         let aniPath = []
+            //         for(let ic=0;ic<path.length;ic++){
+            //             let ics = path[ic]
+            //             aniPath.push({latitude: ics[1], longitude: ics[0]}) // normally is 0 and 1, but it depended on data source
+            //         }
+
+            //         let mAni = new CUBE.Animation(single["id"], taxiSingle, "tween", {startNow: true, repeat: true}).GPSPath(aniPath, 100000)
+            //         this.C.GetAniEngine().Register(mAni)
+                    
+            //     }
+            // })
 
 
             // Add a basic box

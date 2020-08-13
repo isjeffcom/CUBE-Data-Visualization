@@ -7,7 +7,6 @@
 <script>
 
 import * as CUBE from '../../core/Main'
-import * as THREE from 'three'
 import Request from '../../utils/Request'
 //import { Coordinate } from '../../core/coordinate/Coordinate'
 
@@ -20,7 +19,6 @@ export default {
     data(){
         return{
             C: null,
-            //Center: { latitude: 34.654818, longitude: 103.673262 },
             //Center: {latitude: 55.943686, longitude: -3.188822}, // EDI
             Center: {latitude: 40.709028, longitude: -73.956928}, // NYC
             //Center: {latitude: 41.157937, longitude: -8.629108} // porto
@@ -55,48 +53,72 @@ export default {
             let aniEngine = new CUBE.AnimationEngine(this.C)
             this.C.SetAniEngine(aniEngine)
 
+            let roadData = await (await Request.AsyncGet('./assets/geo/nyc/highway.geojson')).json()
+            let roads = new CUBE.GeoJsonLayer(roadData, "nyc_road").Road({fat: false})
+            this.C.Add(roads)
+
             //Add Geojson Building Layer
             let ed = await (await Request.AsyncGet('./assets/geo/nyc/building.geojson')).json()
             let buildings = new CUBE.GeoJsonLayer(ed, "city_buildings").Buildings({merge: true})
             this.C.Add(buildings)
 
-            // Add a ground
-            let ground = new CUBE.Terrain().Ground(800, 800, 8)
-            this.C.Add(ground)
-            ground.position.y = -2.4
+            let waterData = await (await Request.AsyncGet('./assets/geo/nyc/water.geojson')).json()
+            let water = new CUBE.GeoJsonLayer(waterData, "nyc_water").Water({merge: true})
+            this.C.Add(water)
+            water.position.y = -0.1
 
-            // NYC NAT MAP
-            this.C.AddGroup("nyc_nta")
-            let nyc = await (await Request.AsyncGet('./assets/geo/nyc/nta.geojson')).json()
-            let nyc_geo = new CUBE.GeoJsonLayer(nyc, "nyc").AdministrativeMap({border: true, height: 2})
-            this.C.Add(nyc_geo)
-            nyc_geo.position.y = -2.2
+            let seaData = await (await Request.AsyncGet('./assets/geo/nyc/sea.geojson')).json()
+            let sea = new CUBE.GeoJsonLayer(seaData, "nyc_sea").Water({merge: true})
+            this.C.Add(sea)
+            sea.position.y = -0.1
 
-            // NYC Taxi
-            let taxi = await Request.AsyncGet('./assets/geo/nyc/taxi.json')
-            taxi = await taxi.json()
-            for(let i=0;i<taxi.length;i++){
-                let adate = taxi[i]
-                if(adate["date"] == "2020-05-25"){
-                    for(let ii=0;ii<adate["routes"].length;ii++){
-                        let single = adate["routes"][ii]
+            // // Add a ground
+            // let ground = new CUBE.Terrain().Ground(800, 800, 8)
+            // this.C.Add(ground)
+            // ground.position.y = -2.4
+
+            // // NYC NAT MAP
+            // this.C.AddGroup("nyc_nta")
+            // let nyc = await (await Request.AsyncGet('./assets/geo/nyc/nta.geojson')).json()
+            // let nyc_geo = new CUBE.GeoJsonLayer(nyc, "nyc").AdministrativeMap({border: true, height: 2})
+            // this.C.Add(nyc_geo)
+            // nyc_geo.position.y = -2.2
+
+            // // Population heatmap
+            // let population = await (await Request.AsyncGet('./assets/geo/nyc/pop.json')).json()
+            // let pop = []
+            // for(let i=0;i<population.length;i++){
+            //     pop.push({location: population[i].center, val: population[i].val / 550})
+            // }
+            // let heat = new CUBE.Datasets("population", pop).Heatmap(600, 25)
+            // this.C.Add(heat)
+            // heat.position.set(0, 7, 0)
+
+            // //NYC Taxi
+            // let taxi = await Request.AsyncGet('./assets/geo/nyc/taxi.json')
+            // taxi = await taxi.json()
+            // for(let i=0;i<taxi.length;i++){
+            //     let adate = taxi[i]
+            //     if(adate["date"] == "2020-05-25"){
+            //         for(let ii=0;ii<adate["routes"].length;ii++){
+            //             let single = adate["routes"][ii]
                         
-                        let path = single["path"]
-                        let taxiSingle = new CUBE.Data().Sphere({latitude: path[0][0], longitude: path[0][1]}, 1, .03, 0xFFB800)
-                        this.C.Add(taxiSingle)
+            //             let path = single["path"]
+            //             let taxiSingle = new CUBE.Data().Sphere({latitude: path[0][0], longitude: path[0][1]}, 1, .03, 0xFFB800)
+            //             this.C.Add(taxiSingle)
 
-                        let aniPath = []
-                        for(let ic=0;ic<path.length;ic++){
-                            let ics = path[ic]
-                            aniPath.push({latitude: ics[1], longitude: ics[0]}) // normally is 0 and 1, but it depended on data source
-                        }
+            //             let aniPath = []
+            //             for(let ic=0;ic<path.length;ic++){
+            //                 let ics = path[ic]
+            //                 aniPath.push({latitude: ics[1], longitude: ics[0]}) // normally is 0 and 1, but it depended on data source
+            //             }
 
-                        let mAni = new CUBE.Animation(single["id"], taxiSingle, "tween", {startNow: true, repeat: true}).GPSPath(aniPath, 100000)
-                        this.C.GetAniEngine().Register(mAni)
-                    }
-                }
+            //             let mAni = new CUBE.Animation(single["id"], taxiSingle, "tween", {startNow: true, repeat: true}).GPSPath(aniPath, 100000)
+            //             this.C.GetAniEngine().Register(mAni)
+            //         }
+            //     }
                 
-            }
+            // }
 
             // // porto Taxi
             // let taxi = await Request.AsyncGet('./assets/geo/porto/taxi.json')

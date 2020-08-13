@@ -4,6 +4,15 @@ import PS_Heatmap from '../shader/PS_Heatmap'
 import CUBE_Material from '../materials/CUBE_Material'
 import { Coordinate } from '../coordinate/Coordinate'
 
+/*
+data: [
+    {
+        locations: {latitude: Number, longitude: Number}
+        val: Number
+    }
+]
+*/
+
 // Pass in an array of data
 export class Datasets extends Data{
     constructor(name, data){
@@ -43,10 +52,18 @@ export class Datasets extends Data{
     Heatmap(size=256, radius=50){
         let shader = new PS_Heatmap()
 
-        let heightMap = HeightMap(size, radius)
+        let heightMapData = []
+        for(let i=0;i<this.data.length;i++){
+            
+            let posi = new Coordinate("GPS", this.data[i].location).ComputeWorldCoordinate()
+            heightMapData.push({x: posi.world.x, y: posi.world.z, val: this.data[i].val})
+        }
+        
+        let heightMap = HeightMap(heightMapData, size, radius)
+        
 
         let planeGeometry = new THREE.PlaneBufferGeometry(size, size, 1000, 1000)
-        planeGeometry.rotateX(-Math.PI * 0.5)
+        planeGeometry.rotateX(-Math.PI / 2)
 
         let heat = new THREE.Mesh(planeGeometry, new THREE.ShaderMaterial({
             uniforms: {
@@ -60,16 +77,14 @@ export class Datasets extends Data{
             opacity: 0.95
         }))
 
+        this.layer.add(heat)
 
-        heat.scale.set(0.08, 0.08, 0.08)
-        heat.position.y = 0.5
-
-        return heat
+        return this.layer
     }
     
 }
 
-function HeightMap(size=256, radius=50){
+function HeightMap(data=[], size=256, radius=50){
 
     let canvas = document.createElement("canvas")
     canvas.width = size
@@ -77,11 +92,19 @@ function HeightMap(size=256, radius=50){
     let ctx = canvas.getContext("2d")
     ctx.fillStyle = "black"
     ctx.fillRect(0, 0, size, size)
-    for(let i = 0; i < 100; i++){
-        let x = Math.floor(Math.random() * 255)
-        let y = Math.floor(Math.random() * 255)
+
+    for(let i = 0; i < data.length; i++){
+        let el = data[i]
+        // let x = Math.floor(Math.random() * 255)
+        // let y = Math.floor(Math.random() * 255)
+        
+
+        let x = (size / 2) + (-el.x)
+        let y = (size / 2) + el.y
+
         let grd = ctx.createRadialGradient(x, y, 1, x, y, radius)
-        let h8 = Math.floor(Math.random() * 255)
+        let h8 = el.val
+
         grd.addColorStop(0, "rgb("+ h8 + "," + h8 + "," + h8 +")")
         grd.addColorStop(1, "transparent")
         ctx.fillStyle = grd

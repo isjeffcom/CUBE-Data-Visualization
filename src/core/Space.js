@@ -58,7 +58,7 @@ export class Space {
 
         // Init render
         this.renderer = new THREE.WebGLRenderer({antialias: true})
-        this.renderer.shadowMap.enabled = true
+        this.renderer.shadowMap.enabled = false
         this.renderer.setPixelRatio( window.devicePixelRatio )
         this.renderer.setSize(window.innerWidth, window.innerHeight)
 
@@ -103,7 +103,9 @@ export class Space {
         this.renderer.render(this.scene, this.camera)
         this.controls.update()
 
-        if(this.AniEngine) this.AniEngine.Update()
+        if(this.AniEngine){
+            if(this.isViewable()) this.AniEngine.Update()
+        }
         if(this.ShaderEngine) this.ShaderEngine.Update()
         
         this.stats.update()
@@ -253,6 +255,14 @@ export class Space {
             this.scene.add(light)
         })
         
+    }
+
+    isViewable(){
+        if(this.camera.position.y < 20 && this.camera.position.x < 20){
+            return true
+        } else {
+            return false
+        }
     }
 
     /**

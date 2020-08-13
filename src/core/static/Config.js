@@ -17,7 +17,7 @@ export function DefaultConfig(){
     "renderer": {
         "antialias": true,
         "shadowMap": {
-            "enabled": true
+            "enabled": false
         }
     },
     "controls": {

@@ -1,4 +1,6 @@
 import * as THREE from 'three'
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
+import { Vector3 } from 'three'
 
 export default class CUBE_Material{
     constructor(type){
@@ -27,5 +29,38 @@ export default class CUBE_Material{
 
     GeoBorder(property={ color: 0x49DEFF }){
         return new THREE.LineBasicMaterial(property)
+    }
+
+    GeoRoad(property={ color: 0x1B4686 }){
+        return new THREE.LineBasicMaterial( property )
+    }
+
+    GeoRoad2(property={ color: 0x1B4686, linewidth: 5, vertexColors: true, dashed: false}){
+        return new LineMaterial(property)
+    }
+
+    GeoRoadAnimation(property={ color: 0xff9900 }){
+        return new THREE.LineDashedMaterial(property)
+    }
+
+    GeoWater(sun, fog=true){
+        let property = {
+            textureWidth: .5,
+            textureHeight: .5,
+            waterNormals: this.GeoWaterNormal(),
+            alpha: 1.0,
+            sunColor: 0xDDEBFF,
+            waterColor: 0x78AFFF,
+            distortionScale: 2,
+        }
+        property.fog = fog // Boolean
+        property.sunDirection = sun ? sun.position.clone().normalize() : new Vector3(0,0,0) // THREE.Light
+        return property
+    }
+
+    GeoWaterNormal(normalTexture = './assets/waternormals.png'){
+        return new THREE.TextureLoader().load( normalTexture, function ( texture ) {
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+        })
     }
 }

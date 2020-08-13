@@ -113,3 +113,18 @@ export function GenWaterGeometry(shape, config){
 export function MergeGeometry(geometries){
     return BufferGeometryUtils.mergeBufferGeometries(geometries)
 }
+
+export function MergeLineGeometry(geometries){
+    
+    let arr = []
+    for(let i=0;i<geometries.length;i++){
+        arr.push(geometries[i].attributes.position.array)
+    }
+    //console.log(geometries[0].attributes.position.array)
+    let geometry = new THREE.BufferGeometry()
+    //geometry.attributes.position.array = arr
+    
+    //geometry.attributes.position.array = arr
+    // geometry.attributes.onUploadCallback  = geometries[0].attributes.onUploadCallback
+    return geometry
+}

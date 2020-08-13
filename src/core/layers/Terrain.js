@@ -2,6 +2,7 @@ import * as GeoTIFF from "geotiff"
 import * as THREE from 'three'
 import { Coordinate } from '../coordinate/Coordinate'
 import CUBE_Material from '../materials/CUBE_Material'
+import { Water } from 'three/examples/jsm/objects/Water'
 
 export class Terrain{
 
@@ -20,13 +21,27 @@ export class Terrain{
         this.layer.name = name
     }
 
-    Ground(sizeX=5, sizeY=20, segments=32){
+    Ground(sizeX=20, sizeY=20, segments=32){
         let geometry = new THREE.PlaneBufferGeometry( sizeX, sizeY, segments )
         geometry.rotateX(Math.PI / 2)
         geometry.rotateZ(Math.PI)
         let ground = new THREE.Mesh( geometry, new CUBE_Material().Ground() )
         
         this.layer.add(ground)
+        return this.layer
+    }
+
+    WaterGround(sizeX=20, sizeY=20, segments=32){
+        let sun = new THREE.Light("#ffffff", .5)
+        sun.position.set(0, 4, 0)
+        let mat_water = new CUBE_Material().GeoWater(sun, true)
+
+        let geometry = new THREE.PlaneBufferGeometry( sizeX, sizeY, segments )
+        geometry.rotateX(Math.PI / 2)
+        geometry.rotateZ(Math.PI)
+
+        let mesh = new Water(geometry, mat_water)
+        this.layer.add(mesh)
         return this.layer
     }
 

@@ -1,10 +1,13 @@
 import * as THREE from 'three'
-import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { Vector3 } from 'three'
 
 export default class CUBE_Material{
     constructor(type){
         this.type = type
+    }
+
+    Basic(property={ color: 0xff0000 }){
+        return new THREE.MeshPhongMaterial( property )
     }
 
     Point(property={ size: 4, color: 0xff0000, sizeAttenuation: false }){
@@ -33,10 +36,6 @@ export default class CUBE_Material{
 
     GeoRoad(property={ color: 0x1B4686 }){
         return new THREE.LineBasicMaterial( property )
-    }
-
-    GeoRoad2(property={ color: 0x1B4686, linewidth: 5, vertexColors: true, dashed: false}){
-        return new LineMaterial(property)
     }
 
     GeoRoadAnimation(property={ color: 0xff9900 }){

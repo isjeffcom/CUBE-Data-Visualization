@@ -1,4 +1,5 @@
 import TWEEN from '@tweenjs/tween.js'
+import { Layer } from '../layers/Layer'
 
 export class AnimationEngine{
 
@@ -6,18 +7,31 @@ export class AnimationEngine{
         this.ins = ins
         this.allTween = []
         this.allCircular = []
+        this.aniGroup = new Layer("_animation")
     }
 
     Register(animation){
-        if(animation.type == "tween"){
+        if(animation.type === "tween"){
             this.allTween.push(animation)
-            this.ins.Add(animation.object)
+            this.aniGroup.Add(animation.object)
         }
 
-        if(animation.type == "circular"){
+        if(animation.type === "circular"){
             this.allCircular.push(animation)
-            this.ins.Add(animation.object)
+            this.aniGroup.Add(animation.object)
         }
+
+        this.ins.Add(this.aniGroup.Layer())
+    }
+
+    Clear(){
+        for(let i=0;i<this.allTween.length;i++){
+            this.allTween[i].Destroy()
+        }
+        this.allTween = []
+        this.allCircular = []
+        this.aniGroup.Clear()
+        this.ins.Delete(this.aniGroup)
     }
 
     Update(){

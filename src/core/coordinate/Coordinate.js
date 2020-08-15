@@ -5,20 +5,20 @@
  * @param {Object} options { latitude: Number, longitude: Number, altitude: Number, x: Number, y: Number, z: Number }
  * @public
  * 
- * Notice: Be aware that the altitude is not the real altitude, it is the y value, but it can be in the future
+ * Notice: Be aware that the altitude is not the real altitude but the world position y-axis
 */
 
 export class Coordinate{
 
-    constructor(type, options) {
-        if(type == "GPS"){
+    constructor(type, coor) {
+        if(type === "GPS"){
             this.world = {}
-            this.gps = new GPSCoordinate(options.latitude, options.longitude, options.altitude || 0)
+            this.gps = new GPSCoordinate(coor.latitude, coor.longitude, coor.altitude || 0)
         }
 
-        if(type == "World"){
+        if(type === "World"){
             this.gps = {}
-            this.world = new WorldCoordinate(options.x, options.y, options.z)
+            this.world = new WorldCoordinate(coor.x, coor.y, coor.z)
         }
 
         this.tile = {x: 0, y:0, centerOffset: {x: 0, y: 0}}
@@ -104,9 +104,9 @@ class WorldCoordinate{
         this.z = z
     }
 
-    computeGPSCoordinate(scale=100){
-        // Reserved
-    }
+    // computeGPSCoordinate(scale=100){
+    //     // Reserved
+    // }
 }
 
 /**
@@ -128,9 +128,9 @@ function Mercator(lat, lon) {
     return mercator
 }
 
-function MercatorReverse(x, y) {
-    // Reserved
-}
+// function MercatorReverse(x, y) {
+//     // Reserved
+// }
 
 export function GPSToTile(lat, lon, zoom){
     let x = (lon + 180) / 360 * Math.pow(2, zoom)

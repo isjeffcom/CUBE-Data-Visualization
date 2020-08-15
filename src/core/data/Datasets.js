@@ -1,8 +1,9 @@
 import * as THREE from 'three'
 import Data from './Data'
-import PS_Heatmap from '../shader/PS_Heatmap'
+import PS_Heatmap from '../shader/assets/CS_Heatmap'
 import CUBE_Material from '../materials/CUBE_Material'
 import { Coordinate } from '../coordinate/Coordinate'
+import { Layer } from '../layers/Layer'
 
 /*
 data: [
@@ -20,11 +21,12 @@ export class Datasets extends Data{
         this.name = name
         this.data = data
         this.mat_point = new CUBE_Material().Point()
+
         this.center = window.CUBE_GLOBAL.CENTER
+        this.scale = window.CUBE_GLOBAL.MAP_SCALE
 
         // New Layer
-        this.layer = new THREE.Group()
-        this.layer.name = name
+        this.layer = new Layer(name)
     }
 
     PointCloud(){
@@ -42,14 +44,18 @@ export class Datasets extends Data{
             mesh.position.set(posi.world.x, posi.world.y, posi.world.z)
 
             // Add to layer
-            this.layer.add(mesh)
+            this.layer.Add(mesh)
 
         }
 
-        return this.layer
+        return this.layer.Layer()
     }
 
-    Heatmap(size=256, radius=50){
+    Heatmap(size=60, radius=2.5){
+        
+        size = size * this.scale
+        radius = radius * this.scale
+
         let shader = new PS_Heatmap()
 
         let heightMapData = []
@@ -77,9 +83,9 @@ export class Datasets extends Data{
             opacity: 0.95
         }))
 
-        this.layer.add(heat)
+        this.layer.Add(heat)
 
-        return this.layer
+        return this.layer.Layer()
     }
     
 }
@@ -95,10 +101,7 @@ function HeightMap(data=[], size=256, radius=50){
 
     for(let i = 0; i < data.length; i++){
         let el = data[i]
-        // let x = Math.floor(Math.random() * 255)
-        // let y = Math.floor(Math.random() * 255)
         
-
         let x = (size / 2) + (-el.x)
         let y = (size / 2) + el.y
 

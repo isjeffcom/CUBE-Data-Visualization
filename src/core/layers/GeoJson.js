@@ -1,11 +1,10 @@
 import * as THREE from 'three'
 import { Coordinate } from '../coordinate/Coordinate'
 import {GenShape, GenGeometry, GenHelper, MergeGeometry, GenWaterGeometry } from '../utils/ModelBuilder'
-import { Line2 } from 'three/examples/jsm/lines/Line2.js' // Fat Line
-import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js'
 import { Water } from 'three/examples/jsm/objects/Water'
 
 import CUBE_Material from '../materials/CUBE_Material'
+import { Layer } from './Layer'
 
 
 export class GeoJsonLayer{
@@ -15,25 +14,19 @@ export class GeoJsonLayer{
         this.name = name
 
         // Main Layer
-        this.layer = new THREE.Group()
-        this.layer.name = name
+        this.layer = new Layer(name)
 
-        
         this.materials = []
 
         // Object Group
-        this.layer_objects = new THREE.Group()
-        this.layer_objects.name = name + "_objects"
+        this.layer_objects = new Layer(name + "_objects")
 
         // Borders Group (if needed)
-        this.layer_borders = new THREE.Group()
-        this.layer_borders.name = name + "_borders"
+        this.layer_borders = new Layer(name + "_borders")
 
         // Collider Group (if needed)
-        this.layer_colliders = new THREE.Group()
-        this.layer_colliders.name = name + "_collider"
+        this.layer_colliders = new Layer(name + "_collider")
     }
-
 
     /**
      * @param {Object} options {merge: Boolean, border: Boolean} merge: if use merge function to optimise performance, border: if generate border
@@ -89,14 +82,14 @@ export class GeoJsonLayer{
                     if(province){
                         if(options.merge){
                             geometries.push(province.geometry)
-                            this.layer_colliders.add(province.helper)
+                            this.layer_colliders.Add(province.helper)
                         } else {
-                            this.layer_objects.add(new THREE.Mesh(province.geometry, this.mat_map))
+                            this.layer_objects.Add(new THREE.Mesh(province.geometry, this.mat_map))
                         }
 
                     } 
 
-                    if(options.border) this.layer_borders.add(addBorder(coor, this.mat_line, height+.01))
+                    if(options.border) this.layer_borders.Add(addBorder(coor, this.mat_line, height+.01))
                 }
 
             }
@@ -106,18 +99,18 @@ export class GeoJsonLayer{
         if(options.merge){
             let mergedGeometry = MergeGeometry(geometries)
             let provinceMesh = new THREE.Mesh(mergedGeometry, this.mat_map)
-            this.layer_objects.add(provinceMesh)
+            this.layer_objects.Add(provinceMesh)
         }
         
-        this.layer.add(this.layer_objects)
-        //this.layer.add(this.layer_colliders)
-        this.layer.add(this.layer_borders)
+        this.layer.Add(this.layer_objects.Layer())
+        //this.layer.Add(this.layer_colliders.Layer())
+        this.layer.Add(this.layer_borders.Layer())
 
-        return this.layer
+        return this.layer.Layer()
     }
 
     /**
-     * @param {Object} options {merge: Boolean} merge: if use merge function to optimise performance
+     * @param {Object} options {merge: Boolean, color: 0xffffff} merge: if use merge function to optimise performance
      * @param {THREE.Material} mat replace building material
      * @public
     */
@@ -125,7 +118,7 @@ export class GeoJsonLayer{
     Buildings(options, mat){
 
         // Replace material
-        this.mat_building = mat ? mat : new CUBE_Material().GeoBuilding()
+        this.mat_building = mat ? mat : new CUBE_Material().GeoBuilding({color: options.color ? options.color : 0x7884B2, specular: 0xfafafa, reflectivity: 0.6})
 
         // Register material
         this.materials.push = this.mat_building
@@ -149,18 +142,19 @@ export class GeoJsonLayer{
             if(!fel["properties"]) return
 
             let info = fel["properties"]
+            let tags = verify(info, "building")
             
             // Only render when geometry is Polygon
-            if(info["tags"]["building"] && fel.geometry.type == "Polygon"){
+            if(tags && fel.geometry.type == "Polygon"){
 
                 let building = addBuilding(fel.geometry.coordinates, info, info["tags"]["building:levels"])
 
                 if(building){
                     if(options.merge){
                         geometries.push(building.geometry)
-                        this.layer_colliders.add(building.helper)
+                        this.layer_colliders.Add(building.helper)
                     } else {
-                        this.layer_objects.add(new THREE.Mesh(building.geometry, this.mat_building))
+                        this.layer_objects.Add(new THREE.Mesh(building.geometry, this.mat_building))
                     }
                 }
             }
@@ -170,28 +164,28 @@ export class GeoJsonLayer{
         if(options.merge){
             let mergedGeometry = MergeGeometry(geometries)
             let buildingsMesh = new THREE.Mesh(mergedGeometry, this.mat_building)
-            this.layer_objects.add(buildingsMesh)
+            this.layer_objects.Add(buildingsMesh)
         }
 
-        this.layer.add(this.layer_objects)
-        //this.layer.add(this.layer_colliders)
-
-        return this.layer
+        this.layer.Add(this.layer_objects.Layer())
+        //this.layer.Add(this.layer_colliders)
+        console.log()
+        return this.layer.Layer()
     }
+
+    /**
+     * @param {Object} options {color: 0xffffff} merge: if use merge function to optimise performance
+     * @param {THREE.Material} mat replace building material
+     * @public
+    */
 
     Road(options, mat){
 
         //let geometries = []
 
         let features = this.geojson
-
-        // Set material
-        if(options.fat){
-            this.mat_road = new CUBE_Material().GeoRoad()
-        } else {
-            this.mat_road = new CUBE_Material().GeoRoad2()
-        }
-
+        this.mat_road = new CUBE_Material().GeoRoad({ color: options.color ? options.color : 0x1B4686 })
+        
         // Replace material interface
         this.mat_road = mat ? mat : this.mat_road
 
@@ -212,56 +206,43 @@ export class GeoJsonLayer{
             let info = fel["properties"]
             //let selectTags = info.tags ? "tags" : "properties"
             // Only render when geometry is Polygon
-            let tags = false
-            if(info["highway"] != "undefined"){
-                tags = info.highway
-            }
-
-            else if( info["tags"]["highway"] != "undefined"){
-                tags = info.tags.highway
-            }
+            let tags = verify(info, "highway")
             
             if(tags){
                 // Render Roads
                 if(fel.geometry.type == "LineString" && tags != "pedestrian" && tags != "footway" && tags != "path"){
-                    let road = addRoad(fel.geometry.coordinates, options.fat)
+                    let road = addRoad(fel.geometry.coordinates)
                     if(road){
-                        if(options.fat){
-                            //geometries.push(road.geometry)
-                            let line = new Line2( road.geometry, this.mat_road )
-                            line.computeLineDistances()
-                            this.layer.add(line)
-                        }
 
-                        else {
-                            
-                            let line = new THREE.Line( road.geometry, this.mat_road )
-                            line.info = info
-                            line.computeLineDistances()
+                        let line = new THREE.Line( road.geometry, this.mat_road )
+                        line.info = info
+                        line.computeLineDistances()
 
-                            // Adjust position
-                            line.position.set(line.position.x, 1, line.position.z)
+                        // Adjust position
+                        line.position.set(line.position.x, 1, line.position.z)
 
-                            // Disable matrix auto update for performance
-                            line.matrixAutoUpdate = false
-                            line.updateMatrix()
-                            this.layer.add(line)
-                        }
+                        // Disable matrix auto update for performance
+                        line.matrixAutoUpdate = false
+                        line.updateMatrix()
+                        this.layer_objects.Add(line)
+                        
                     }
                 }
             }
         }
 
-        // Merge geometry for performance
+        // Merge geometry for performance NOT SUPPORTED
         // if(options.merge){
         //     let mergedGeometry = MergeLineGeometry(geometries)
         //     let roadMesh = new THREE.LineSegments(mergedGeometry, this.mat_road)
         //     roadMesh.position.set(roadMesh.position.x, 1.1, roadMesh.position.z)
-        //     this.layer.add(roadMesh)
+        //     this.layer.Add(roadMesh)
         //     //console.log(geometries[0])
         // }
 
-        return this.layer
+        this.layer.Add(this.layer_objects.Layer())
+
+        return this.layer.Layer()
     }
 
     Water(options){
@@ -278,13 +259,14 @@ export class GeoJsonLayer{
             let fel = features[i]
             if(!fel['properties']) return
 
-            if(fel.properties['tags']['natural'] == "water" && fel.geometry.type == "Polygon"){
+            let tags = verify(fel['properties'], "natural")
+            if(tags == "water" && fel.geometry.type == "Polygon"){
                 let water = addWater(fel.geometry.coordinates, fel.properties)
                 if(options.merge){
                     geometries.push(water.geometry)
                 }else{
                     let mesh = new Water(water.geometry, mat_water)
-                    this.layer.add(mesh)
+                    this.layer.Add(mesh)
                 }
             }
         }
@@ -292,10 +274,10 @@ export class GeoJsonLayer{
         if(options.merge){
             let merged = MergeGeometry(geometries)
             let mesh = new Water(merged, mat_water)
-            this.layer.add(mesh)
+            this.layer.Add(mesh)
         }
 
-        return this.layer
+        return this.layer.Layer()
 
         
     }
@@ -386,7 +368,7 @@ function addProvince(coordinates, info, height=1){
     
 }
 
-function addRoad(d, fat){
+function addRoad(d){
 
     // Init points array
     let points = []
@@ -423,26 +405,15 @@ function addRoad(d, fat){
         // if(dem) {y = -dem.y} else {y = 0.5}
         
         // Draw Line
-        if(fat){
-            points.push(elp.world.x, elp.world.y + 1, elp.world.z)
-        } else {
-            points.push( new THREE.Vector3( elp.world.x, elp.world.y + 1, elp.world.z ) )
-        }
+        points.push( new THREE.Vector3( elp.world.x, elp.world.y + 1, elp.world.z ) )
+        
         
     }
     let geometry
-    if(fat){
-        geometry = new LineGeometry()
-        geometry.setPositions(points)
-    } else {
-        geometry = new THREE.BufferGeometry().setFromPoints( points )
-    }
-    
+    geometry = new THREE.BufferGeometry().setFromPoints( points )
 
     // Adjust geometry rotation
     geometry.rotateZ(Math.PI)
-
-    
 
     // if(this.FLAG_ROAD_ANI){
     //   let lineLength = geometry.attributes.lineDistance.array[ geometry.attributes.lineDistance.count - 1]
@@ -524,4 +495,17 @@ function addWater(d){
     geometry.rotateZ(Math.PI)
 
     return {geometry: geometry}
+}
+
+function verify(properties, key="building"){
+    let tags = false
+    if(properties[key] !== undefined){
+        tags = properties[key]
+    }
+
+    else if(properties["tags"] && properties["tags"][key] !== undefined){
+        tags = properties["tags"][key]
+    }
+
+    return tags
 }

@@ -1,4 +1,3 @@
-import * as THREE from 'three'
 import TWEEN from '@tweenjs/tween.js'
 import { Coordinate } from '../coordinate/Coordinate'
 import deepmerge from 'deepmerge'
@@ -6,6 +5,7 @@ import { Vector3 } from 'three'
 
 let opt = {
     startNow: true,
+    delay: 0,
     repeat: false
 }
 
@@ -20,8 +20,8 @@ export class Animation {
         this.state = 0
         this.angle = 0
 
-        // Tween objects
-        this.tween = []
+        // Tween object
+        this.tween = null
 
         this.options = deepmerge(opt, options)
     }
@@ -48,11 +48,14 @@ export class Animation {
         }
 
         this.tween = new TWEEN.Tween(this.object.position).to(all, duration).easing(TWEEN.Easing.Linear.None)
-
-        if(this.options.startNow) this.Play()
-        if(this.options.repeat) this.Loop()
+        if(this.options.startNow) this.Play() // Start Now
+        if(this.options.repeat) this.Loop() // Repeat Loop
 
         return this
+    }
+
+    Destroy(){
+        if(this.tween) this.tween.stop()
     }
 
     Circular(){
@@ -62,7 +65,16 @@ export class Animation {
     }
 
     Play(){
-        if(this.tween) this.tween.start()
+        if(this.tween){
+            if(this.options.delay != 0){
+                setTimeout(()=>{
+                    this.tween.start()
+                }, this.options.delay)
+            } else {
+                this.tween.start()
+            }
+            
+        }
         this.state = 1
     }
 

@@ -7,8 +7,8 @@ let HEIGHT_SCALE = .5
 let SEGMENTS = 16
 
 let axisX = new THREE.Vector3(1,0,0)
-let axisY = new THREE.Vector3(0,1,0)
-let axisZ = new THREE.Vector3(0,0,1)
+//let axisY = new THREE.Vector3(0,1,0)
+//let axisZ = new THREE.Vector3(0,0,1)
 
 
 // pass in an a single data
@@ -16,10 +16,6 @@ export default class Data {
 
     constructor(name){
         this.name = name
-    }
-
-    Point(coordinate, value, size=.5, color=0xff6600){
-
     }
 
     Sphere(coordinate, value=1, size=2, color=0xff6600){

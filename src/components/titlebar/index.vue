@@ -22,7 +22,7 @@ export default {
     position: fixed;
     top: 0px;
     left: 0px;
-    background: rgba(0,0,0,0.2);
+    background: rgba(0,0,0,0);
     width: 100%;
     height: 40px;
     padding: 24px;

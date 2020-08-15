@@ -5,7 +5,15 @@ Vue.use(VueRouter)
 
 import home from './pages/home'
 import projects from './pages/projects'
-import coretest from './pages/coretest'
+import nyc from './pages/nyc'
+import administrative from './pages/administrative' // check
+import basic from './pages/basic' // check
+import heatmap from './pages/heatmap' // check
+import model from './pages/model'
+import model_ani_tween from './pages/model/tween'
+import model_ani_circular from './pages/model/circular'
+import bitmap from './pages/bitmap'
+
 //import bus from './pages/bus'
 
 
@@ -17,7 +25,14 @@ export default new VueRouter({
     // Home
     { path:'/', name:'default', redirect: projects },
     { path:'/home', name:'home', component: home },
-    { path:'/coretest', name:'coretest', component: coretest },
+    { path:'/basic', name:'basic', component: basic },
+    { path:'/administrative', name:'administrative', component: administrative },
+    { path:'/nyc', name:'nyc', component: nyc },
+    { path:'/heatmap', name:'heatmap', component: heatmap },
     { path:'/projects', name:'projects', component: projects },
+    { path:'/bitmap', name:'bitmap', component: bitmap },
+    { path:'/model', name:'model', component: model },
+    { path:'/model_tween', name:'model', component: model_ani_tween },
+    { path:'/model_circular', name:'model', component: model_ani_circular },
   ]
 })

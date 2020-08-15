@@ -7,8 +7,7 @@ export class Model{
 
     constructor(coordinate){
         // If no world coordinate than computed
-        if(!coordinate.world) coordinate.computeWorldCoordinate()
-        this.position = new THREE.Vector3(coordinate.world.x, coordinate.world.y, coordinate.world.z)
+        this.position = new THREE.Vector3(coordinate.x, coordinate.y, coordinate.z)
         this.object = null
     }
 

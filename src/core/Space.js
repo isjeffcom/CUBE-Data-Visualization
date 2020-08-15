@@ -127,12 +127,28 @@ export class Space {
         // 支持由组名搜索，如果组不存在则加到scene根层级中
 
         if(typeof group == "string"){
-            group = this.FindGroup(group)
+            group = this.FindLayer(group)
             group = group ? group : this.scene
         }
 
         group.add(object3D)
         return object3D
+    }
+
+
+    /**
+     * Delete an object from a group
+     * @param {THREE.Object3D} object3D Three.js Object3D object
+     * @param {THREE.Group} group Three.js Group Object
+     * @public
+    */
+
+    Delete(object3D, group){
+        if(!group) group = this.scene
+        if(object3D["geometry"]) object3D["geometry"].dispose()
+        if(object3D["material"]) object3D["material"].dispose()
+        group.remove( object3D )
+        return true
     }
 
     /**
@@ -141,12 +157,27 @@ export class Space {
      * @public
     */
 
-    AddGroup(name){
+    AddLayer(name){
         
         let group = new THREE.Group()
         group.name = name
         this.scene.add(group)
         return group
+    }
+
+    /**
+     * DeleteLayer a group
+     * @param {String} name Group name
+     * @public
+    */
+
+    DeleteLayer(name){
+        let group = this.FindLayer(name)
+        for(let i=0;i<group.children.length;i++){
+            let mesh = group.children[i]
+            this.Delete(mesh, group)
+        }
+        this.scene.remove(group)
     }
 
     /**
@@ -156,7 +187,7 @@ export class Space {
     */
 
     // Find a group 找到组
-    FindGroup(name){
+    FindLayer(name){
 
         let res = null
         let groups = this.scene.children
@@ -258,7 +289,7 @@ export class Space {
     }
 
     isViewable(){
-        if(this.camera.position.y < 20 && this.camera.position.x < 20){
+        if(this.camera.position.y < 60 && this.camera.position.x < 60){
             return true
         } else {
             return false

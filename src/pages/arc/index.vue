@@ -43,9 +43,24 @@ export default {
             })
 
             // Add Geojson Map Layer
-            let china = await (await Request.AsyncGet('./assets/geo/china.geojson')).json()
+            const china = await (await Request.AsyncGet('./assets/geo/china.geojson')).json()
             this.C.Add(new CUBE.GeoJsonLayer(china, "china").AdministrativeMap({border: true, height: .5}))
+            
+            // Defind wgs84 coors for 3 place
+            // Remember to set y value for Arc as the administrative map has extruded 0.5 in height
+            const shanghai = {latitude: 31.230689, longitude: 121.473723}
+            const shenzhen = {latitude: 22.540368, longitude: 113.934476, altitude: .5}
+            const beijing = {latitude: 39.907787, longitude: 116.397875}
 
+            // Set arc lines
+            const arc1 = new CUBE.Data("shanghaiToShenzhen").Arc(shanghai, shenzhen, 500, .5)
+            const arc2 = new CUBE.Data("shanghaiToBeijing").Arc(shanghai, beijing, 500, 0) // you can either set yOffset value or change altitude value of the coordinate in this case
+            const arc3 = new CUBE.Data("BeijingToShenzhen").Arc(beijing, shenzhen, 500, .5)
+
+            // Add to scene
+            this.C.Add(arc1)
+            this.C.Add(arc2)
+            this.C.Add(arc3)
 
         },
 

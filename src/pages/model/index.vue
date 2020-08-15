@@ -4,18 +4,6 @@
     </div>
 </template>
 
-<style scoped>
-#date-selector{
-    position: fixed;
-    bottom: 5%;
-    display:flex;
-}
-
-.ds-single{
-    color: #000;
-    cursor: pointer;
-}
-</style>
 
 <script>
 

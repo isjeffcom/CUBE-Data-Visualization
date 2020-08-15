@@ -13,6 +13,10 @@ import model from './pages/model'
 import model_ani_tween from './pages/model/tween'
 import model_ani_circular from './pages/model/circular'
 import bitmap from './pages/bitmap'
+import arc from './pages/arc'
+import datas from './pages/datas'
+import polygon from './pages/polygon'
+import terrain from './pages/terrain'
 
 //import bus from './pages/bus'
 
@@ -32,6 +36,10 @@ export default new VueRouter({
     { path:'/projects', name:'projects', component: projects },
     { path:'/bitmap', name:'bitmap', component: bitmap },
     { path:'/model', name:'model', component: model },
+    { path:'/arc', name:'arc', component: arc },
+    { path:'/polygon', name:'polygon', component: polygon },
+    { path:'/datas', name:'datas', component: datas },
+    { path:'/terrain', name:'terrain', component: terrain },
     { path:'/model_tween', name:'model', component: model_ani_tween },
     { path:'/model_circular', name:'model', component: model_ani_circular },
   ]

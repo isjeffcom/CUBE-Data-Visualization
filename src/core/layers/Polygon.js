@@ -6,6 +6,7 @@ import { Layer } from "./Layer"
 export class Polygon {
     constructor(name, coors){
         this.coors = coors
+
         this.layer = new Layer(name)
         this.layer_objects = new Layer(name + "_objects")
         this.layer_collider = new Layer(name + "_collider")
@@ -17,7 +18,7 @@ export class Polygon {
      * @param {THREE.Material} mat replace line material
      * @public
     */
-    Polygon(info={}, options, mat){
+    Ground(info={}, options={}, mat){
         let height = options.height ? options.height : 1
         let material = mat ? mat : new CUBE_Material().Ground({color: options.color ? options.color : 0xffffff})
 

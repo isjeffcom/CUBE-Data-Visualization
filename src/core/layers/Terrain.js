@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { Coordinate } from '../coordinate/Coordinate'
 import CUBE_Material from '../materials/CUBE_Material'
 import { Water } from 'three/examples/jsm/objects/Water'
+import { Layer } from "./Layer"
 
 export class Terrain{
 
@@ -13,12 +14,10 @@ export class Terrain{
         //     console.error("Boundary box parameter is essential and must pass in")
         // }
 
-        this.mat_terrain = new CUBE_Material().Terrain()
         this.geometry = null
 
         // Main Layer
-        this.layer = new THREE.Group()
-        this.layer.name = name
+        this.layer = new Layer(name)
     }
 
     Ground(sizeX=20, sizeY=20, segments=32){
@@ -27,8 +26,8 @@ export class Terrain{
         geometry.rotateZ(Math.PI)
         let ground = new THREE.Mesh( geometry, new CUBE_Material().Ground() )
         
-        this.layer.add(ground)
-        return this.layer
+        this.layer.Add(ground)
+        return this.layer.Layer()
     }
 
     WaterGround(sizeX=20, sizeY=20, segments=32){
@@ -41,30 +40,40 @@ export class Terrain{
         geometry.rotateZ(Math.PI)
 
         let mesh = new Water(geometry, mat_water)
-        this.layer.add(mesh)
-        return this.layer
+        this.layer.Add(mesh)
+        return this.layer.Layer()
     }
 
-    async GeoTiff(tiffData, heightScale=30, overwrite){
+    /**
+     * @param {ArrayBuffer} tiffData Get digital elevation model data from tiff image 
+     * @param {Number} heightScale Height scale
+     * @param {options} options {color: 0x999999}
+     * @param {THREE.Material} mat replacement material if required
+     * @public
+    */
+
+    async GeoTiff(tiffData, heightScale=30, options={}, mat){
+
+        // Read and parse geotiff data from tif image
         const rawTiff  = await GeoTIFF.fromArrayBuffer(tiffData)
         const tifImage = await rawTiff.getImage()
 
-        let bbox = tifImage.getBoundingBox() // 0: west Longitude, 1: south latitude, 2: east longitude, 3: north latitude
+        // Obtain bounding box from geotiff image
+        const bbox = tifImage.getBoundingBox() // 0: west Longitude, 1: south latitude, 2: east longitude, 3: north latitude
 
-        // const start = {latitude: this.bbox.south.latitude, longitude: this.bbox.west.longitude}
-        // const end = {latitude: this.bbox.north.latitude, longitude: this.bbox.east.longitude}
-
+        // Get start(left-bottom) and end (right-top) coordinates
         const start = { longitude: bbox[0], latitude: bbox[1] }
         const end = { longitude: bbox[2], latitude: bbox[3] }
 
+        // Calculate world position
         const leftBottom = new Coordinate("GPS", start).ComputeWorldCoordinate()
         const rightTop = new Coordinate("GPS", end).ComputeWorldCoordinate()
         
-        // Offset from center position
+        // Set offset from center position
         const x = Math.abs(leftBottom.world.x - rightTop.world.x)
         const y = Math.abs(leftBottom.world.z - rightTop.world.z)
 
-        // Initial plane geometry
+        // Initial a plane geometry
         const geometry = new THREE.PlaneGeometry(
             x,
             y,
@@ -89,11 +98,15 @@ export class Terrain{
         geometry.rotateY(Math.PI)
         geometry.rotateZ(Math.PI)
 
+        // Material
+        const color = options.color ? options.color : 0x999999
+        this.mat_terrain = mat ? mat : new CUBE_Material().Terrain({color: color, side: THREE.DoubleSide, wireframe: true})
+        
         // Create a plane mesh
         let plane = new THREE.Mesh( geometry, this.mat_terrain )
-        this.layer.add(plane)
+        this.layer.Add(plane)
 
-        return this.layer
+        return this.layer.Layer()
 
     }
 }

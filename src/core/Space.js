@@ -22,7 +22,7 @@ export class Space {
      * @public
     */
 
-    constructor(container, opt){
+    constructor(container, opt={}){
 
         // Update Global Config
         window.CUBE_GLOBAL.CENTER = opt.center ? Clone(opt.center) : window.CUBE_GLOBAL.CENTER

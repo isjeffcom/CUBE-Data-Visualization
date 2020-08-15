@@ -11,7 +11,7 @@ let opt = {
 
 export class Animation {
     // State 0: stop, 1: playing, 2: paused, 99: infinite
-    constructor(name, object, type, options){
+    constructor(name, object, type, options={}){
         this.name = name
         this.object = object
         this.type = type

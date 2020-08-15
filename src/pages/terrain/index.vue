@@ -4,31 +4,13 @@
     </div>
 </template>
 
-<style scoped>
-#date-selector{
-    position: fixed;
-    bottom: 5%;
-    display:flex;
-}
-
-.ds-single{
-    color: #000;
-    cursor: pointer;
-}
-</style>
-
 <script>
 
 import * as CUBE from '../../core/Main'
 import Request from '../../utils/Request'
-//import { Coordinate } from '../../core/coordinate/Coordinate'
 
 export default {
     name: "porto",
-    props: {
-        // Config Address
-        
-    },
     data(){
         return{
             C: null,
@@ -44,25 +26,29 @@ export default {
     },
     methods: {
         async Init(){
+            // Container
             let container = document.getElementById('cont')
 
             // Init CUBE Instance
             this.C = new CUBE.Space(container, {
                 background: "333333", 
                 center: this.Center, 
-                scale: 10
+                scale: 5,
+                camera: {
+                    position: {x: 5, y: 5, z: 5}
+                }
             })
-
-            // Buildings
-            let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
-            let buildings = new CUBE.GeoJsonLayer(ed, "ed_buildings").Buildings({merge: true})
-            this.C.Add(buildings)
 
             // Add terrain
             let edt = await Request.AsyncGet('./assets/geo/project/terrain.tif')
-            edt = await edt.arrayBuffer()
-            let terrain = await new CUBE.Terrain(edt, "edinburgh_terrain").GeoTiff()
+            let buf = await edt.arrayBuffer()
+            let terrain = await new CUBE.Terrain("edinburgh_terrain").GeoTiff(buf)
             this.C.Add(terrain)
+
+            // Buildings
+            let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
+            let buildings = new CUBE.GeoJsonLayer(ed, "ed_buildings").Buildings({merge: true, color: 0xE5E5E5, terrain})
+            this.C.Add(buildings)
 
         },
 

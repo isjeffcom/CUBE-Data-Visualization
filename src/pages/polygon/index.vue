@@ -37,35 +37,49 @@ export default {
             this.C = new CUBE.Space(container, {
                 background: "333333", 
                 center: this.Center, 
-                scale: 5,
+                scale: 1,
                 camera:{
-                    position: {x: 0, y: 8, z: 20}
+                    position: {x: 6, y:10, z:6}
                 }
             })
 
-            let shaderEngine = new CUBE.ShaderEngine(this.C)
-            this.C.SetShaderEngine(shaderEngine)
+            // Init Animation Engine
+            let aniEngine = new CUBE.AnimationEngine(this.C)
+            this.C.SetAniEngine(aniEngine)
+
+            // // Add a ground
+            let ground = new CUBE.Terrain().Ground(800, 800, 8)
+            this.C.Add(ground)
+            ground.position.y = -2.4
 
             // NYC NAT MAP
             let nyc = await (await Request.AsyncGet('./assets/geo/nyc/manhattan.geojson')).json()
-            let nyc_geo = new CUBE.GeoJsonLayer(nyc, "nyc").AdministrativeMap({border: true, height: 2})
+            let nyc_geo = new CUBE.GeoJsonLayer(nyc, "manhattan").AdministrativeMap({border: true, height: .5})
             this.C.Add(nyc_geo)
-            nyc_geo.position.y = 0
+            nyc_geo.position.y = -1.5
 
-            // Process Data
-            let population = await (await Request.AsyncGet('./assets/geo/nyc/pop.json')).json()
-            let pop = []
-            for(let i=0;i<population.length;i++){
-                pop.push({location: population[i].center, val: population[i].val / 550})
-            }
+            // NYC NAT MAP
 
-            // Main Code
-            let heat = new CUBE.Datasets("population", pop).Heatmap(70, 2.5)
-            this.C.Add(heat)
-            heat.position.set(0, 10, 0)
-            this.C.GetShaderEngine().Register(heat.children[0], "uniforms", "heightColor", {max: 2, min: 1, step: 0.004})
+            let poverty = await (await Request.AsyncGet('./assets/geo/nyc/poverty.json')).json()
+            poverty.forEach(area => {
+                let color
+                if(area.val >= 20) color = 0x826040
+                if(area.val >= 10 && area.val < 20) color = 0x698240
+                if(area.val < 10) color = 0xAA752A
+
+                const amesh = new CUBE.Polygon(area.code, area.polygon).Ground({code: area.code, val: area.val}, {color: color, height: .5})
+                this.C.Add(amesh)
+                amesh.position.y = -1
+            })
             
 
+
+
+        },
+
+        AddModel(){
+            let cube = new CUBE.Shapes().Box()
+            this.C.Add(cube)
         },
 
         Update(){

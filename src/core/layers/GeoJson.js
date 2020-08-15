@@ -35,7 +35,7 @@ export class GeoJsonLayer{
      * @public
     */
 
-    AdministrativeMap(options, mat_map, mat_line){
+    AdministrativeMap(options={}, mat_map, mat_line){
         
         // Replace material 
         this.mat_map = mat_map ? mat_map : new CUBE_Material().GeoMap()
@@ -110,12 +110,15 @@ export class GeoJsonLayer{
     }
 
     /**
-     * @param {Object} options {merge: Boolean, color: 0xffffff} merge: if use merge function to optimise performance
+     * @param {Object} options {merge: Boolean, color: 0xffffff, terrain} merge: if use merge function to optimise performance
      * @param {THREE.Material} mat replace building material
      * @public
     */
 
-    Buildings(options, mat){
+    Buildings(options={}, mat){
+
+        let terrain = options.terrain ? options.terrain.children[0].geometry : false
+        if(options.terrain) console.warn("Building with terrain is an experimental function. In some case, it might cause performance issue and memory leak.")
 
         // Replace material
         this.mat_building = mat ? mat : new CUBE_Material().GeoBuilding({color: options.color ? options.color : 0x7884B2, specular: 0xfafafa, reflectivity: 0.6})
@@ -147,12 +150,12 @@ export class GeoJsonLayer{
             // Only render when geometry is Polygon
             if(tags && fel.geometry.type == "Polygon"){
 
-                let building = addBuilding(fel.geometry.coordinates, info, info["tags"]["building:levels"])
+                let building = addBuilding(fel.geometry.coordinates, info["tags"]["building:levels"], terrain)
 
                 if(building){
                     if(options.merge){
                         geometries.push(building.geometry)
-                        this.layer_colliders.Add(building.helper)
+                        //this.layer_colliders.Add(building.helper) // Invisiable collider
                     } else {
                         this.layer_objects.Add(new THREE.Mesh(building.geometry, this.mat_building))
                     }
@@ -168,8 +171,7 @@ export class GeoJsonLayer{
         }
 
         this.layer.Add(this.layer_objects.Layer())
-        //this.layer.Add(this.layer_colliders)
-        console.log()
+        //this.layer.Add(this.layer_colliders) // Invisiable collider
         return this.layer.Layer()
     }
 
@@ -179,7 +181,7 @@ export class GeoJsonLayer{
      * @public
     */
 
-    Road(options, mat){
+    Road(options={}, mat){
 
         //let geometries = []
 
@@ -245,7 +247,7 @@ export class GeoJsonLayer{
         return this.layer.Layer()
     }
 
-    Water(options){
+    Water(options={}){
 
         let sun = new THREE.Light("#ffffff", .5)
         sun.position.set(0, 4, 0)
@@ -288,8 +290,7 @@ export class GeoJsonLayer{
 
 }
 
-function addBuilding(coordinates, info, height=1) {
-
+function addBuilding(coordinates, height=1, terrain) {
     height = height ? height : 1
 
     let shape, geometry
@@ -308,19 +309,33 @@ function addBuilding(coordinates, info, height=1) {
     for(let i=0;i<holes.length;i++){
         shape.holes.push(holes[i])
     }
+
     
     geometry = GenGeometry(shape, {curveSegments: 1, depth: 0.1 * height, bevelEnabled: false})
     geometry.rotateX(Math.PI / 2)
     geometry.rotateZ(Math.PI)
-    
-    let helper = GenHelper(geometry)
 
-    if(helper){
-        helper.name = info["name"] ? info["name"] : "Building"
-        helper.info = info
+    // if has terrain data then adjust altitude
+    if(terrain){
+        let vector = new THREE.Vector3( shape.currentPoint.x, 0, shape.currentPoint.y )
+        let axis = new THREE.Vector3( 0, 0, 1 )
+        let angle = Math.PI
+        vector.applyAxisAngle( axis, angle )
+        let dem = shortEst({x: vector.x, z: vector.z}, terrain.vertices)
+        if(dem) {geometry.translate(0, dem.y, 0)}
     }
+    
+    // DISABLE HERE TO GENERATE INVISIABLE COLLIDER
+    //let helper = GenHelper(geometry)
+    // if(helper){
+    //     helper.name = info["name"] ? info["name"] : "Building"
+    //     helper.info = info
+    // }
 
-    return {geometry: geometry, helper: helper}
+    return {
+        geometry: geometry, 
+        //helper: helper
+    }
   
   
   }
@@ -495,6 +510,22 @@ function addWater(d){
     geometry.rotateZ(Math.PI)
 
     return {geometry: geometry}
+}
+
+function shortEst(target, arr){
+    let resDis = 100000 // Save distance
+    let res = false // default return
+
+    for(let i=0;i<arr.length;i++){ // loop all terrain data
+
+        let dis = Math.sqrt(Math.pow((target.x - arr[i].x), 2) + Math.pow((target.z - arr[i].z), 2)) // get distance from target distance to terrain geometry data
+        if(dis <= resDis){ // if distance less than resDis
+        resDis = dis // save new distance
+        res = arr[i] // save terrain geometry data
+        }
+    }
+
+    return res
 }
 
 function verify(properties, key="building"){

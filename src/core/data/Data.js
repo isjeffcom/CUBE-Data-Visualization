@@ -27,11 +27,11 @@ export default class Data {
         let sphere = new THREE.Mesh( geometry, material )
 
         let y = local_coor.world.y + yOffset
-        sphere.position.set(-local_coor.world.x, 0, local_coor.world.z)
+        sphere.position.set(-local_coor.world.x, y, local_coor.world.z)
         return sphere
     }
 
-    Bar(coordinate, value=1, size=.5, yOffset=0, color=0xff6600){
+    Bar(coordinate, value=1, size=.5, yOffset=0, color=0xff6600, mat){
 
         let height = this._HEIGHT_SCALE * value
 
@@ -41,7 +41,7 @@ export default class Data {
 
         let geometry = new THREE.BoxBufferGeometry( size, size, height, this._SEGMENTS ) // top, bottom, height, segments
 
-        let material = new THREE.MeshPhongMaterial( {color: color} )
+        let material = mat ? mat : new THREE.MeshPhongMaterial( {color: color} )
         let bar = new THREE.Mesh( geometry, material )
         
         
@@ -55,7 +55,7 @@ export default class Data {
         return bar
     }
 
-    Cylinder(coordinate, value=1, size=.5, yOffset=0, color=0xff6600){
+    Cylinder(coordinate, value=1, size=.5, yOffset=0, color=0xff6600, mat){
 
         let height = this._HEIGHT_SCALE * value
 
@@ -65,7 +65,7 @@ export default class Data {
 
         let geometry = new THREE.CylinderBufferGeometry( size, size, height, this._SEGMENTS ) // top, bottom, height, segments
 
-        let material = new THREE.MeshPhongMaterial( {color: color} )
+        let material = mat ? mat : new THREE.MeshPhongMaterial( {color: color} )
         let cylinder = new THREE.Mesh( geometry, material )
 
         //Rotate around X 90deg 绕X轴旋转90度
@@ -76,7 +76,7 @@ export default class Data {
         return cylinder
     }
 
-    Arc(coorA, coorB, height=5, yOffset=0, color=0xff6600){
+    Arc(coorA, coorB, height=5, yOffset=0, color=0xff6600, mat){
         height = height * this._SCALE
         let localA = new Coordinate("GPS", coorA).ComputeWorldCoordinate()
         let localB = new Coordinate("GPS", coorB).ComputeWorldCoordinate()
@@ -88,13 +88,13 @@ export default class Data {
             new THREE.Vector3( -localB.world.x, localA.world.y + yOffset, localB.world.z )
         ], false,"catmullrom")
         
-        var points = arcLine.getPoints( 50 )
-        var geometry = new THREE.BufferGeometry().setFromPoints( points )
+        let points = arcLine.getPoints( 50 )
+        let geometry = new THREE.BufferGeometry().setFromPoints( points )
         geometry.computeBoundingSphere()
         geometry.boundingSphere.center = new THREE.Vector3(localCenter.world.x, 0, localCenter.world.z)
 
-        var material = new THREE.LineBasicMaterial( { color : color, linewidth: 1 } )
-        var arc = new THREE.Line( geometry, material )
+        let material = mat ? mat : new THREE.LineBasicMaterial( { color : color, linewidth: 1 } )
+        let arc = new THREE.Line( geometry, material )
 
 
         //Rotate around X 90deg 绕X轴旋转90度

@@ -22,7 +22,8 @@ export default {
         this.Update()
 
         // Add event listener for window resize
-        window.addEventListener( 'resize', this.C.WindowResize(window), false )
+        window.addEventListener('resize', this.C.WindowResize(window), false)
+
     },
     methods: {
         async Init(){
@@ -39,7 +40,7 @@ export default {
                 }
             })
 
-            // Add terrain
+            // Terrain
             let edt = await Request.AsyncGet('./assets/geo/project/terrain.tif')
             let buf = await edt.arrayBuffer()
             let terrain = await new CUBE.Terrain("edinburgh_terrain").GeoTiff(buf)

@@ -58,8 +58,7 @@ export default {
             this.C.Add(nyc_geo)
             nyc_geo.position.y = -1.5
 
-            // NYC NAT MAP
-
+            // Poverty map by polygon geometry
             let poverty = await (await Request.AsyncGet('./assets/geo/nyc/poverty.json')).json()
             poverty.forEach(area => {
                 let color
@@ -67,13 +66,10 @@ export default {
                 if(area.val >= 10 && area.val < 20) color = 0x698240
                 if(area.val < 10) color = 0xAA752A
 
-                const amesh = new CUBE.Polygon(area.code, area.polygon).Ground({code: area.code, val: area.val}, {color: color, height: .5})
-                this.C.Add(amesh)
-                amesh.position.y = -1
+                const mesh = new CUBE.Polygon(area.code, area.polygon).Ground({code: area.code, val: area.val}, {color: color, height: .5})
+                this.C.Add(mesh)
+                mesh.position.y = -1
             })
-            
-
-
 
         },
 

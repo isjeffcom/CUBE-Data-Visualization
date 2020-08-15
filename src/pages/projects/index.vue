@@ -242,7 +242,8 @@ export default {
 #projects{
     width: 100%;
     background: #1D2128;
-    margin-top: 100px;
+    margin-top: 40px;
+    padding-bottom: 40px;
 }
 
 #p-list{

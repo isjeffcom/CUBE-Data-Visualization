@@ -17,6 +17,7 @@ import arc from './pages/arc'
 import datas from './pages/datas'
 import polygon from './pages/polygon'
 import terrain from './pages/terrain'
+import water from './pages/water'
 
 //import bus from './pages/bus'
 
@@ -38,9 +39,10 @@ export default new VueRouter({
     { path:'/model', name:'model', component: model },
     { path:'/arc', name:'arc', component: arc },
     { path:'/polygon', name:'polygon', component: polygon },
+    { path:'/water', name:'water', component: water },
     { path:'/datas', name:'datas', component: datas },
     { path:'/terrain', name:'terrain', component: terrain },
-    { path:'/model_tween', name:'model', component: model_ani_tween },
-    { path:'/model_circular', name:'model', component: model_ani_circular },
+    { path:'/model_tween', name:'model_tween', component: model_ani_tween },
+    { path:'/model_circular', name:'model_circular', component: model_ani_circular },
   ]
 })

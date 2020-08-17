@@ -3,7 +3,7 @@ import { MapControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { DefaultConfig } from './static/Config.js'
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import merge from 'deepmerge'
-import { Clone } from '../utils/Clone'
+import { Clone } from './utils/Clone'
 
 // Import
 import './static/Global'

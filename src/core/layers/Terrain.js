@@ -1,4 +1,4 @@
-import * as GeoTIFF from "geotiff"
+import * as GeoTIFF from "../utils/third/geotiff"
 import * as THREE from 'three'
 import { Coordinate } from '../coordinate/Coordinate'
 import CUBE_Material from '../materials/CUBE_Material'

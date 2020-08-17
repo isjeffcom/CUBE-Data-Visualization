@@ -1,5 +1,5 @@
 <template>
-    <div id="water">
+    <div id="coretest">
         <div id="cont"></div>
     </div>
 </template>
@@ -21,9 +21,11 @@
 
 import * as CUBE from '../../core/Main'
 import Request from '../../utils/Request'
+import * as THREE from 'three'
+//import { Coordinate } from '../../core/coordinate/Coordinate'
 
 export default {
-    name: "water",
+    name: "coretest",
     props: {
         // Config Address
         
@@ -32,6 +34,21 @@ export default {
         return{
             C: null,
             Center: {latitude: "40.760366", longitude: "-73.983888"}, // NYC
+            taxiData: [],
+            currentTaxiDate: "2020-05-25",
+            taxisDate: [
+                "2020-05-25",
+                "2020-05-26",
+                "2020-05-27",
+                "2020-05-28",
+                "2020-05-29",
+                "2020-05-30"
+            ],
+            nycGround: null,
+            activeAni: null,
+            polyArr: [],
+            provertyOpen: true,
+            taxiMaterial: null
             
         }
     },
@@ -58,6 +75,16 @@ export default {
                 }
             })
 
+            // Add a ground
+            let ground = new CUBE.Terrain().Ground(800, 800, 8)
+            this.C.Add(ground)
+            ground.position.y = -3
+
+            // Custom
+            let island = await (await Request.AsyncGet('./assets/geo/cubemark.json')).json()
+            let custom = new CUBE.GeoJsonLayer("island", island).Polygon({merge: true})
+            this.C.Add(custom)
+
             // NYC NAT MAP
             let nyc = await (await Request.AsyncGet('./assets/geo/nyc/nta.geojson')).json()
             let nyc_geo = new CUBE.GeoJsonLayer("nyc", nyc).AdministrativeMap({border: true, height: 2})
@@ -65,16 +92,8 @@ export default {
             nyc_geo.position.y = -2.8
             this.nycGround = nyc_geo
 
-            let waterData = await (await Request.AsyncGet('./assets/geo/nyc/water.geojson')).json()
-            let water = new CUBE.GeoJsonLayer("nyc_water", waterData).Water({merge: true})
-            this.C.Add(water)
-            water.position.y = -1
-
-            let seaData = await (await Request.AsyncGet('./assets/geo/nyc/sea.geojson')).json()
-            let sea = new CUBE.GeoJsonLayer("nyc_sea", seaData).Water({merge: true})
-            this.C.Add(sea)
-            sea.position.y = -1
         },
+
 
         Update(){
             requestAnimationFrame(this.Update)

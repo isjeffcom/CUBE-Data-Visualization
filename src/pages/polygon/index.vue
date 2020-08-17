@@ -54,7 +54,7 @@ export default {
 
             // NYC NAT MAP
             let nyc = await (await Request.AsyncGet('./assets/geo/nyc/manhattan.geojson')).json()
-            let nyc_geo = new CUBE.GeoJsonLayer(nyc, "manhattan").AdministrativeMap({border: true, height: .5})
+            let nyc_geo = new CUBE.GeoJsonLayer("manhattan", nyc).AdministrativeMap({border: true, height: .5})
             this.C.Add(nyc_geo)
             nyc_geo.position.y = -1.5
 

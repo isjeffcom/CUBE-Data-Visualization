@@ -17,7 +17,10 @@ import arc from './pages/arc'
 import datas from './pages/datas'
 import polygon from './pages/polygon'
 import terrain from './pages/terrain'
+import text from './pages/text'
 import water from './pages/water'
+import pipeline from './pages/pipeline'
+import edinburgh from './pages/edinburgh'
 
 //import bus from './pages/bus'
 
@@ -38,9 +41,12 @@ export default new VueRouter({
     { path:'/bitmap', name:'bitmap', component: bitmap },
     { path:'/model', name:'model', component: model },
     { path:'/arc', name:'arc', component: arc },
+    { path:'/text', name:'text', component: text },
     { path:'/polygon', name:'polygon', component: polygon },
+    { path:'/pipeline', name:'pipeline', component: pipeline },
     { path:'/water', name:'water', component: water },
     { path:'/datas', name:'datas', component: datas },
+    { path:'/edinburgh', name:'edinburgh', component: edinburgh },
     { path:'/terrain', name:'terrain', component: terrain },
     { path:'/model_tween', name:'model_tween', component: model_ani_tween },
     { path:'/model_circular', name:'model_circular', component: model_ani_circular },

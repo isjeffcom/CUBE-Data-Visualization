@@ -19,7 +19,7 @@ export default {
     data(){
         return{
             C: null,
-            Center: {latitude: 41.157937, longitude: -8.629108}, // porto
+            Center: {latitude: 55.943686, longitude: -3.188822}, // EDI
         }
     },
     mounted(){
@@ -37,12 +37,23 @@ export default {
             this.C = new CUBE.Space(container, {
                 background: "333333", 
                 center: this.Center, 
-                scale: 10
+                scale: 10,
+                debug: true
             })
 
+            // Init Animation Engine
+            let aniEngine = new CUBE.AnimationEngine(this.C)
+            this.C.SetAniEngine(aniEngine)
+
             let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
-            let buildings = new CUBE.GeoJsonLayer(ed, "ed_buildings").Buildings({merge: true})
+            let buildings = new CUBE.GeoJsonLayer("ed_buildings", ed).Buildings({merge: true})
             this.C.Add(buildings)
+
+            // Road
+            let roadData = await (await Request.AsyncGet('./assets/geo/project/highway.geojson')).json()
+            let roads = new CUBE.GeoJsonLayer("ed_road", roadData).RoadSp({animation: true, animationEngine: aniEngine})
+            this.C.Add(roads)
+            roads.position.y = -1
 
         },
 

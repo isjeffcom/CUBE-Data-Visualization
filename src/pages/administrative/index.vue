@@ -44,7 +44,7 @@ export default {
 
             // Add Geojson Map Layer
             let china = await (await Request.AsyncGet('./assets/geo/china.geojson')).json()
-            this.C.Add(new CUBE.GeoJsonLayer(china, "china").AdministrativeMap({border: true, height: .5}))
+            this.C.Add(new CUBE.GeoJsonLayer("china", china).AdministrativeMap({border: true, height: .5}))
 
 
         },

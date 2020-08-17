@@ -1,5 +1,5 @@
 <template>
-    <div id="porto">
+    <div id="model">
         <div id="cont"></div>
     </div>
 </template>
@@ -9,27 +9,13 @@
 
 import * as CUBE from '../../core/Main'
 import Request from '../../utils/Request'
-import * as THREE from 'three'
 
 export default {
-    name: "porto",
-    props: {
-        // Config Address
-        
-        
-        
-    },
+    name: "model",
     data(){
         return{
             C: null,
-            Center: {latitude: 55.943686, longitude: -3.188822}, // EDI
-            path: [
-                {latitude: 55.942867, longitude: -3.186062},
-                {latitude: 55.943104, longitude: -3.184601},
-                {latitude: 55.943556, longitude: -3.184923},
-                {latitude: 55.943879, longitude: -3.185246},
-                {latitude: 55.944342, longitude: -3.185880}
-            ]
+            Center: {latitude: 55.943686, longitude: -3.188822} // EDI
         }
     },
     mounted(){
@@ -55,14 +41,14 @@ export default {
 
             // Load Edinburgh Buildings
             let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
-            let buildings = new CUBE.GeoJsonLayer(ed, "ed_buildings").Buildings({merge: true})
+            let buildings = new CUBE.GeoJsonLayer("ed_buildings", ed).Buildings({merge: true})
             this.C.Add(buildings)
 
             // Load model
             let posi = new CUBE.Coordinate("GPS", {latitude: 55.943686, longitude: -3.188822, altitude: 3}).ComputeWorldCoordinate()
             let m = new CUBE.Model(posi.world)
             m.LoadGLTF('./assets/models/satellite/scene.gltf').then(()=>{
-                let light = new THREE.DirectionalLight(0xffffff, 1)
+                let light = new this.C.three.DirectionalLight(0xffffff, 1) // Access three from CUBE instance
                 light.position.set(2, 2, 2)
                 m.Attach(light)
                 this.C.Add(m.object)

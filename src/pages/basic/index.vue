@@ -28,7 +28,7 @@ export default {
         window.addEventListener( 'resize', this.C.WindowResize(window), false )
     },
     methods: {
-        async Init(){
+        Init(){
             let container = document.getElementById('cont')
 
             // Init CUBE Instance

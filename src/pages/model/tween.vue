@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import * as THREE from 'three'
+
 import * as CUBE from '../../core/Main'
 import Request from '../../utils/Request'
 
@@ -52,7 +52,7 @@ export default {
 
             // Load Edinburgh Buildings
             let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
-            let buildings = new CUBE.GeoJsonLayer(ed, "ed_buildings").Buildings({merge: true})
+            let buildings = new CUBE.GeoJsonLayer("ed_buildings", ed).Buildings({merge: true})
             this.C.Add(buildings)
 
             // Load model, attach light and add animation
@@ -60,7 +60,7 @@ export default {
             let m = new CUBE.Model(posi.world)
             
             m.LoadGLTF('./assets/models/satellite/scene.gltf').then(()=>{
-                let light = new THREE.DirectionalLight(0xffffff, 1)
+                let light = this.C.three.DirectionalLight(0xffffff, 1)
                 light.position.set(1, 1, 1)
 
                 m.Attach(light)
@@ -68,7 +68,7 @@ export default {
                 this.C.Add(m.object)
 
                 let mAni = new CUBE.Animation("test", m.object, "tween", {repeat: true}).GPSPath(this.path, 4000)
-                this.C.GetAniEngine().Register(mAni)
+                this.C.AniEngine.Register(mAni)
 
             })
 

@@ -15,6 +15,7 @@ export default {
         return{
             C: null,
             Center: {latitude: 40.760366, longitude: -73.983888}, // NYC
+            txt: null,
         }
     },
     mounted(){
@@ -47,25 +48,20 @@ export default {
             this.C.Add(nyc_geo)
             nyc_geo.position.y = 0
 
-            // Process Data
-            let population = await (await Request.AsyncGet('./assets/geo/nyc/pop.json')).json()
-            let pop = []
-            for(let i=0;i<population.length;i++){
-                pop.push({location: population[i].center, val: population[i].val / 550})
-            }
-
-            // Main Code
-            let heat = new CUBE.Datasets("population", pop).Heatmap(70, 2.5)
-            this.C.Add(heat)
-            heat.position.set(0, 10, 0)
-            this.C.GetShaderEngine().Register(heat.children[0], "uniforms", "heightColor", {max: 2, min: 1, step: 0.004})
-            
+            // Add Text
+            let txt = new CUBE.Data().Text({latitude: 40.760366, longitude: -73.983888}, "New York", 5)
+            txt.position.set(0,6,6)
+            this.C.Add(txt)
+            this.C.SetLookAt(txt)
 
         },
 
         Update(){
             requestAnimationFrame(this.Update)
+            //if(this.txt) this.txt.lookAt(this.C.GetCamera().position)
+            
             this.C.Runtime()
+            
         }
     }
 }

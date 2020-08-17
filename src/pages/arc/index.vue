@@ -44,7 +44,7 @@ export default {
 
             // Add Geojson Map Layer
             const china = await (await Request.AsyncGet('./assets/geo/china.geojson')).json()
-            this.C.Add(new CUBE.GeoJsonLayer(china, "china").AdministrativeMap({border: true, height: .5}))
+            this.C.Add(new CUBE.GeoJsonLayer("china", china).AdministrativeMap({border: true, height: .5}))
             
             // Defind wgs84 coors for 3 place
             // Remember to set y value for Arc as the administrative map has extruded 0.5 in height

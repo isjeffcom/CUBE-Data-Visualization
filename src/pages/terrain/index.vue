@@ -48,8 +48,14 @@ export default {
 
             // Buildings
             let ed = await (await Request.AsyncGet('./assets/geo/project/building.geojson')).json()
-            let buildings = new CUBE.GeoJsonLayer(ed, "ed_buildings").Buildings({merge: true, color: 0xE5E5E5, terrain})
+            let buildings = new CUBE.GeoJsonLayer("ed_buildings", ed).Buildings({merge: true, color: 0xE5E5E5, terrain})
             this.C.Add(buildings)
+
+            // Road
+            let roadData = await (await Request.AsyncGet('./assets/geo/project/highway.geojson')).json()
+            let roads = new CUBE.GeoJsonLayer("ed_road", roadData).Road({terrain: terrain})
+            this.C.Add(roads)
+            roads.position.y = -1
 
         },
 

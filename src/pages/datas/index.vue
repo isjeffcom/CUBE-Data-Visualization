@@ -24,9 +24,6 @@ export default {
     mounted(){
         this.Init()
         this.Update()
-
-        // Add event listener for window resize
-        window.addEventListener( 'resize', this.C.WindowResize(window), false )
     },
     methods: {
         async Init(){

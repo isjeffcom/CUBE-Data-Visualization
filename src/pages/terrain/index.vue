@@ -34,7 +34,7 @@ export default {
             this.C = new CUBE.Space(container, {
                 background: "333333", 
                 center: this.Center, 
-                scale: 5,
+                scale: 7,
                 camera: {
                     position: {x: 5, y: 5, z: 5}
                 }

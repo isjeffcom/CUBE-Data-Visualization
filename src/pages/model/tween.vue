@@ -60,7 +60,7 @@ export default {
             let m = new CUBE.Model(posi.world)
             
             m.LoadGLTF('./assets/models/satellite/scene.gltf').then(()=>{
-                let light = this.C.three.DirectionalLight(0xffffff, 1)
+                let light = new this.C.three.DirectionalLight(0xffffff, 1)
                 light.position.set(1, 1, 1)
 
                 m.Attach(light)

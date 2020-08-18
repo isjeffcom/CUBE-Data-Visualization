@@ -20,8 +20,6 @@ export default {
         this.Init()
         this.Update()
 
-        // Add event listener for window resize
-        window.addEventListener( 'resize', this.C.WindowResize(window), false )
     },
     methods: {
         async Init(){
@@ -50,14 +48,14 @@ export default {
             let posi = new CUBE.Coordinate("World", {x: 0, y: 6, z: 2})
             let m = new CUBE.Model(posi)
             m.LoadGLTF('./assets/models/satellite/scene.gltf').then(()=>{
-                let light = this.C.three.DirectionalLight(0xffffff, 1)
+                let light = new this.C.three.DirectionalLight(0xffffff, 1)
                 light.position.set(0, 1, 0)
 
                 m.Attach(light)
 
                 this.C.Add(m.object)
 
-                let mAni = new CUBE.Animation("test", m.object, "circular", {startNow: true, repeat: true})
+                let mAni = new CUBE.Animation("test", m.object, "circular", {startNow: true, repeat: true}).Circular(1,1)
                 this.C.GetAniEngine().Register(mAni)
 
             })
